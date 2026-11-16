@@ -66,16 +66,21 @@ def iter_dicts(o):
 
 # ---------------------------------------------------------------- lang
 
-def load_lang(lang_dir):
+def load_lang(lang_dir, col_name="<Chinese>"):
     names = {}
-    for fn in ("units.csv", "units_weaponry.csv"):
+    for fn in ("units.csv", "units_weaponry.csv", "missions_locations.csv", "missions_versus.csv"):
         p = lang_dir / "lang" / fn
         if not p.exists():
             continue
         with open(p, encoding="utf-8-sig", newline="") as f:
-            for row in csv.reader(f, delimiter=";", quotechar='"'):
-                if len(row) > 1 and row[0] and not row[0].startswith("<"):
-                    names.setdefault(row[0].lower(), row[1])
+            r = csv.reader(f, delimiter=";", quotechar='"')
+            hdr = next(r, [])
+            ci = hdr.index(col_name) if col_name in hdr else 1
+            for row in r:
+                if len(row) > ci and row[0] and not row[0].startswith("<"):
+                    val = (row[ci] or (row[1] if len(row) > 1 else "")).replace("\u200b", "").replace("\xa0", " ").strip()
+                    if val:
+                        names.setdefault(row[0].lower(), val)
     return names
 
 
@@ -450,6 +455,7 @@ def main():
     ap.add_argument("--out", default=str(ROOT / "data"))
     ap.add_argument("--keep-tmp", action="store_true")
     ap.add_argument("--skip-objects", action="store_true", help="keep the objects/trees/ground files of an earlier run")
+    ap.add_argument("--lang", default="<Chinese>", help="CSV language column header, e.g. <Chinese> or <English>")
     a = ap.parse_args()
 
     exe = find_wt_unpack(a.wt_unpack)
@@ -462,9 +468,9 @@ def main():
         run(exe, "extract", game / "aces.vromfs.bin", "-o", tmp / "aces", "--blk", "json", "--filter", "tankmodels")
         run(exe, "extract", game / "aces.vromfs.bin", "-o", tmp / "aces", "--blk", "json", "--filter", "groundmodels_weapons")
         run(exe, "extract", game / "mis.vromfs.bin", "-o", tmp / "mis", "--blk", "json", "--filter", "gamedata/missions")
-        run(exe, "extract", game / "lang.vromfs.bin", "-o", tmp / "lang", "--filter", "lang/units")
+        run(exe, "extract", game / "lang.vromfs.bin", "-o", tmp / "lang", "--filter", "lang/")
 
-        names = load_lang(tmp / "lang")
+        names = load_lang(tmp / "lang", a.lang)
         tanks = extract_tanks(tmp / "aces", names)
         print(f"tanks: {len(tanks)}")
         by_level = extract_missions(tmp / "mis")

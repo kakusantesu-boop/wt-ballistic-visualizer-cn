@@ -14,7 +14,7 @@ use crate::core::{Key, Pt, Terrain};
 use crate::paint::{self, color};
 use crate::scene;
 
-pub const DETAIL_LABELS: [&str; 4] = ["Low (fastest)", "Medium", "High", "Ultra"];
+pub const DETAIL_LABELS: [&str; 4] = ["低（最快）", "中", "高", "极高"];
 const LODK: [f64; 4] = [1.5, 3.0, 6.0, 12.0]; // split a node while camera distance < size * k
 const P: usize = 64; // quads per patch side
 const NG: usize = P + 3; // vertices per side incl. the skirt ring
@@ -851,7 +851,7 @@ pub fn prepare(v: &mut Viewer, window: &mut Window, cx: &mut Context<Viewer>) {
                 window.drop_image(old).ok();
             }
         }
-        Err(e) => v3.err = Some(format!("3D view off: {e:#}")),
+        Err(e) => v3.err = Some(format!("3D 视图不可用: {e:#}")),
     }
     v.v3 = v3;
     let _ = cx;
@@ -1050,7 +1050,7 @@ pub fn paint(v: &mut Viewer, b: Bounds<Pixels>, window: &mut Window, cx: &mut Ap
         }
     }
     if let Some((x, z, h)) = v.high_shown() {
-        dot(window, cx, proj(x, h + 25.0, z), COL_HIGH, &format!("Highest {h:.1} m"), 5.0);
+        dot(window, cx, proj(x, h + 25.0, z), COL_HIGH, &format!("最高点 {h:.1} m"), 5.0);
     }
     if let (Some(aim), Some(a), Some(bb)) = (&v.aim, v.a, v.b) {
         if v.sw.on(Sw::Arc) {
@@ -1080,15 +1080,15 @@ pub fn paint(v: &mut Viewer, b: Bounds<Pixels>, window: &mut Window, cx: &mut Ap
                 let col = color(if q.blocked.is_none() { if i > 0 { COL_B } else { COL_A } } else { 0xe2574c }, 1.0);
                 paint::stroke(window, &[point(p.x - px(14.), p.y), point(p.x + px(14.), p.y)], 2.0, col, None, false);
                 paint::stroke(window, &[point(p.x, p.y - px(5.)), point(p.x, p.y + px(5.))], 2.0, col, None, false);
-                let name = if aim.sols.len() > 1 { if i > 0 { "high arc" } else { "low arc" } } else { "aim" };
-                paint::mono(window, cx, &format!("{name} +{} mil, {:.2} m over B{}", scene::mil(q.e - los_ang), aim.d * q.e.tan() - aim.dy, if q.blocked.is_none() { "" } else { " BLOCKED" }), point(p.x + px(18.), p.y - px(6.)), col, 12.0);
+                let name = if aim.sols.len() > 1 { if i > 0 { "高抛曲射" } else { "低伸直射" } } else { "瞄准点" };
+                paint::mono(window, cx, &format!("{name} +{} 密位, 抬高 {:.2} m{}", scene::mil(q.e - los_ang), aim.d * q.e.tan() - aim.dy, if q.blocked.is_none() { "" } else { " [受阻]" }), point(p.x + px(18.), p.y - px(6.)), col, 12.0);
             }
-            let head = if sight { format!("Gunner sight {:.1}×, FOV {:.1}° (wheel), B at {:.0} m", v3.cam.zoom, sight_fov(v3.cam.zoom), aim.d) } else { format!("From A at B: {:.0} m, FOV {:.1}° (wheel)", aim.d, v3.cam.aim_fov) };
-            paint::mono(window, cx, &format!("{head}{}", if aim.sols.is_empty() { ", no firing solution" } else { "" }), paint::p(ox + 10.0, oy + 8.0), color(0xffffff, 1.0), 12.0);
+            let head = if sight { format!("炮长瞄准镜 {:.1}×，视场 {:.1}°（滚轮变倍），目标 B 距离 {:.0} m", v3.cam.zoom, sight_fov(v3.cam.zoom), aim.d) } else { format!("从 A 瞄向 B：距离 {:.0} m，视场 {:.1}°（滚轮缩放）", aim.d, v3.cam.aim_fov) };
+            paint::mono(window, cx, &format!("{head}{}", if aim.sols.is_empty() { "，当前无可行射击诸元" } else { "" }), paint::p(ox + 10.0, oy + 8.0), color(0xffffff, 1.0), 12.0);
         }
     }
     if matches!(v.view_mode, crate::app::ViewMode::Aim | crate::app::ViewMode::Sight) && !aim_mode {
-        paint::mono(window, cx, "Aim and sight views: place A (left click) and B (right click). Showing orbit camera.", paint::p(ox + 10.0, oy + 8.0), color(0xffffff, 1.0), 12.0);
+        paint::mono(window, cx, "瞄准与炮长瞄准镜视角：请先左键放置开火点 A、右键放置目标点 B（当前显示自由环绕视角）。", paint::p(ox + 10.0, oy + 8.0), color(0xffffff, 1.0), 12.0);
     }
 }
 
@@ -1147,12 +1147,12 @@ fn draw_arcs(v: &Viewer, tr_s: &Terrain, aim: &scene::Aim, a: Pt, ox: f32, oy: f
                 paint::dot(window, p, 3.0, Some(color(0xffffff, 1.0)), Some((color(colh, 1.0), 2.0)));
             }
         }
-        let name = if aim.sols.len() > 1 { if i > 0 { "High arc" } else { "Low arc" } } else { "Arc" };
+        let name = if aim.sols.len() > 1 { if i > 0 { "高抛曲射" } else { "低伸直射" } } else { "弹道" };
         if let Some(pe) = proj(at(end)) {
             let c = if q.blocked.is_some() { 0xef5a4f } else { colh };
             paint::stroke(window, &paint::circle_pts(pe, 8.0), 2.5, color(c, 1.0), None, true);
             if !aim_mode {
-                let txt = match q.blocked { Some(_) => format!("{name} blocked at {end:.0} m"), None => format!("{name} impact {:.2} s, {:.0} m/s", q.t, q.v) };
+                let txt = match q.blocked { Some(_) => format!("{name} 在 {end:.0} m 处受阻"), None => format!("{name} 命中 {:.2} s, 存速 {:.0} m/s", q.t, q.v) };
                 paint::label_box(window, cx, pe, &txt, color(c, 1.0));
             }
         }
@@ -1161,7 +1161,7 @@ fn draw_arcs(v: &Viewer, tr_s: &Terrain, aim: &scene::Aim, a: Pt, ox: f32, oy: f
             if let Some(pa) = proj([a.x + aim.dir.0 * tr.s[top], tr.y[top], a.z + aim.dir.1 * tr.s[top]]) {
                 paint::fill(window, &[point(pa.x, pa.y - px(6.)), point(pa.x + px(5.), pa.y + px(3.)), point(pa.x - px(5.), pa.y + px(3.))], color(colh, 1.0));
                 if !aim_mode {
-                    paint::label_box(window, cx, pa, &format!("{name} apex +{rise:.1} m at {:.0} m", tr.s[top]), color(colh, 1.0));
+                    paint::label_box(window, cx, pa, &format!("{name}顶点 +{rise:.1} m (距 A {:.0} m)", tr.s[top]), color(colh, 1.0));
                 }
             }
         }
@@ -1231,14 +1231,21 @@ fn draw_sight(v: &Viewer, aim: &scene::Aim, ox: f32, oy: f32, window: &mut Windo
     // shortcut: ignores the slope to the target, fine for the few degrees tank shots have
     if let Some(sh) = v.shell() {
         let max_r = 4000.0;
-        let tr = crate::core::simulate(sh, 0.0, aim.y_a, max_r + 1.0, Default::default());
+        let use_exact = sh.rocket.is_some() || sh.v0 < 350.0;
+        let tr = (!use_exact).then(|| crate::core::simulate(sh, 0.0, aim.y_a, max_r + 1.0, Default::default()));
         let mut rng = 200.0;
         while rng <= max_r {
-            let y = tr.at(Key::Y, rng);
-            if !y.is_finite() {
-                break;
-            }
-            let dy = at(((aim.y_a - y) / rng).atan());
+            let elev = if let Some(tr) = &tr {
+                let y = tr.at(Key::Y, rng);
+                if !y.is_finite() {
+                    break;
+                }
+                ((aim.y_a - y) / rng).atan()
+            } else {
+                let Some(&e) = crate::core::solve_exact(sh, rng, 0.0, aim.y_a, -5.0, 45.0).first() else { break };
+                e
+            };
+            let dy = at(elev);
             if dy > r - 10.0 {
                 break;
             }

@@ -101,7 +101,7 @@ pub fn map(v: &mut Viewer, b: Bounds<Pixels>, window: &mut Window, cx: &mut App)
         let tri = [point(c.x, c.y - px(9.)), point(c.x + px(8.), c.y + px(6.)), point(c.x - px(8.), c.y + px(6.))];
         paint::fill(window, &tri, color(COL_HIGH, 1.0));
         paint::stroke(window, &tri, 2.0, color(0, 1.0), None, true);
-        paint::text(window, cx, &format!("Highest {hh:.1} m"), point(c.x + px(11.), c.y - px(18.)), color(0xffffff, 1.0), 12.0, true);
+        paint::text(window, cx, &format!("最高点 {hh:.1} m"), point(c.x + px(11.), c.y - px(18.)), color(0xffffff, 1.0), 12.0, true);
     }
 }
 
@@ -112,7 +112,7 @@ pub fn profile(v: &mut Viewer, b: Bounds<Pixels>, window: &mut Window, cx: &mut 
     window.paint_quad(gpui::fill(b, color(0x101316, 1.0)));
     let muted = color(0x8a939c, 1.0);
     let (Some(aim), Some(m), Some(a)) = (&v.aim, &v.map, v.a) else {
-        paint::text(window, cx, "Aim view: side profile from A to B appears here.", p(ox + 12.0, oy + 8.0), muted, 12.0, false);
+        paint::text(window, cx, "弹道高低剖面图：在地图上左键放置开火点 A、右键放置目标点 B 后，此处显示沿线地形与弹道轨迹。", p(ox + 12.0, oy + 8.0), muted, 12.0, false);
         return;
     };
     let t = &m.t;
@@ -156,5 +156,5 @@ pub fn profile(v: &mut Viewer, b: Bounds<Pixels>, window: &mut Window, cx: &mut 
     paint::text(window, cx, &format!("{hi:.0} m"), p(ox + 2.0, oy + 2.0), muted, 12.0, false);
     paint::text(window, cx, "0", p(x(0.0), oy + h - 16.0), muted, 12.0, false);
     paint::text(window, cx, &format!("{d:.0} m"), p(x(d) - 20.0, oy + h - 16.0), muted, 12.0, false);
-    paint::text(window, cx, "vertical scale exaggerated", p(ox + w - 170.0, oy + 2.0), muted, 12.0, false);
+    paint::text(window, cx, "纵向高度比例已放大显示", p(ox + w - 150.0, oy + 2.0), muted, 12.0, false);
 }

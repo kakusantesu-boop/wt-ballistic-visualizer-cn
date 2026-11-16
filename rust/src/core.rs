@@ -4,18 +4,46 @@
 pub const G: f64 = 9.81;
 pub const DEG: f64 = std::f64::consts::PI / 180.0;
 
+#[derive(Clone, Copy, Debug, Default, serde::Deserialize)]
+pub struct RocketMotor {
+    #[serde(rename = "vStart", default)]
+    pub v_start: f64,
+    #[serde(default)]
+    pub force0: f64,
+    #[serde(rename = "tFire0", default)]
+    pub t_fire0: f64,
+    #[serde(rename = "mEnd0", default)]
+    pub m_end0: f64,
+    #[serde(default)]
+    pub force1: f64,
+    #[serde(rename = "tFire1", default)]
+    pub t_fire1: f64,
+    #[serde(rename = "mEnd1", default)]
+    pub m_end1: f64,
+    #[serde(rename = "tDelay", default)]
+    pub t_delay: f64,
+    #[serde(default)]
+    pub guided: bool,
+}
+
 #[derive(Clone, Debug, serde::Deserialize)]
 pub struct Shell {
     #[serde(rename = "type")]
     pub kind: String,
+    #[serde(rename = "typeTitle", default)]
+    pub type_title: Option<String>,
     pub v0: f64,
     pub m: f64,
     pub cal: f64,
     pub cx: f64,
     #[serde(default)]
     pub name: String,
+    #[serde(default)]
+    pub en: Option<String>,
     #[serde(rename = "cxEst", default)]
     pub cx_est: bool,
+    #[serde(default)]
+    pub rocket: Option<RocketMotor>,
 }
 
 /// ISA troposphere density (kg/m^3) at altitude y (m)
@@ -77,10 +105,66 @@ impl Default for SimOpt {
     }
 }
 
-/// Point-mass flight in the vertical plane of the shot. Heun (RK2) steps; exact for constant acceleration.
+/// Point-mass flight in the vertical plane of the shot. Heun (RK2) steps; supports both conventional shells and two-stage rockets.
 pub fn simulate(sh: &Shell, elev: f64, y0: f64, max_s: f64, opt: SimOpt) -> Traj {
     let dt = opt.dt;
     let y_floor = opt.y_floor.unwrap_or(y0 - 3000.0);
+    if let Some(rm) = &sh.rocket {
+        if rm.force0 > 0.0 && rm.t_fire0 > 0.0 {
+            let (dir_x, dir_y) = (elev.cos(), elev.sin());
+            let c_drag = 0.5 * sh.cx * std::f64::consts::PI * sh.cal * sh.cal / 4.0;
+            let t0_start = rm.t_delay.max(0.0);
+            let t0_end = t0_start + rm.t_fire0;
+            let t1_end = t0_end + rm.t_fire1.max(0.0);
+            let m0_end = if rm.m_end0 > 0.0 { rm.m_end0 } else { sh.m };
+            let m1_end = if rm.t_fire1 > 0.0 && rm.m_end1 > 0.0 { rm.m_end1 } else { m0_end };
+            let stage_at = |tt: f64| -> (f64, f64) {
+                if tt < t0_start {
+                    (sh.m, 0.0)
+                } else if tt < t0_end {
+                    let f = (tt - t0_start) / rm.t_fire0;
+                    (sh.m + (m0_end - sh.m) * f, rm.force0)
+                } else if rm.t_fire1 > 0.0 && tt < t1_end {
+                    let f = (tt - t0_end) / rm.t_fire1;
+                    (m0_end + (m1_end - m0_end) * f, rm.force1)
+                } else {
+                    (m1_end, 0.0)
+                }
+            };
+            let accel = |sc: f64, yc: f64, vxc: f64, vyc: f64, tt: f64| -> (f64, f64) {
+                let (mass, thrust) = stage_at(tt);
+                let spd = vxc.hypot(vyc);
+                let (ux, uy) = if spd > 1e-3 { (vxc / spd, vyc / spd) } else { (dir_x, dir_y) };
+                let f_drag = c_drag * rho(yc) * spd * spd;
+                let a_axial = (thrust - f_drag) / mass.max(1e-3);
+                if rm.v_start < 5.0 && sc.hypot(yc - y0) < 2.5 && thrust > 0.0 {
+                    let a_rail = (a_axial - G * dir_y).max(0.0);
+                    (a_rail * dir_x, a_rail * dir_y)
+                } else {
+                    (a_axial * ux, a_axial * uy - G)
+                }
+            };
+            let v_init = rm.v_start.max(0.0);
+            let (mut s, mut y, mut t) = (0.0, y0, 0.0);
+            let (mut vx, mut vy) = (v_init * dir_x, v_init * dir_y);
+            let mut tr = Traj { s: vec![0.0], y: vec![y0], t: vec![0.0], v: vec![v_init] };
+            while s < max_s && t < opt.max_t && y > y_floor {
+                let (ax1, ay1) = accel(s, y, vx, vy, t);
+                let (vx2, vy2) = (vx + ax1 * dt, vy + ay1 * dt);
+                let (ax2, ay2) = accel(s + vx * dt, y + vy * dt, vx2, vy2, t + dt);
+                s += 0.5 * (vx + vx2) * dt;
+                y += 0.5 * (vy + vy2) * dt;
+                vx += 0.5 * (ax1 + ax2) * dt;
+                vy += 0.5 * (ay1 + ay2) * dt;
+                t += dt;
+                tr.s.push(s);
+                tr.y.push(y);
+                tr.t.push(t);
+                tr.v.push(vx.hypot(vy));
+            }
+            return tr;
+        }
+    }
     let k = drag_k(sh);
     let (mut s, mut y, mut t) = (0.0, y0, 0.0);
     let (mut vx, mut vy) = (sh.v0 * elev.cos(), sh.v0 * elev.sin());
@@ -171,7 +255,7 @@ pub fn build_table(sh: &Shell, p_min: f64, p_max: f64, step: f64, y_alt: f64, y_
     for k in 0..ne {
         let e = p_max.min(p_min + k as f64 * step) * DEG;
         elev[k] = e;
-        let tr = simulate(sh, e, y_alt, max_s + ds, SimOpt { y_floor: Some(y_floor_abs), dt: 0.004f64.min(ds / sh.v0 * 2.0), ..Default::default() });
+        let tr = simulate(sh, e, y_alt, max_s + ds, SimOpt { y_floor: Some(y_floor_abs), dt: 0.004f64.min(ds / sh.v0.max(20.0) * 2.0), ..Default::default() });
         let (s, ty) = (&tr.s, &tr.y);
         let (mut p, mut best, mut bi) = (0, f64::NEG_INFINITY, 0);
         for i in 0..n {
@@ -492,7 +576,7 @@ mod tests {
     use super::*;
 
     fn shell(v0: f64, m: f64, cal: f64, cx: f64) -> Shell {
-        Shell { kind: String::new(), v0, m, cal, cx, name: String::new(), cx_est: false }
+        Shell { kind: String::new(), type_title: None, v0, m, cal, cx, name: String::new(), en: None, cx_est: false, rocket: None }
     }
     fn l44() -> Shell { shell(1640.0, 4.3, 0.032, 0.30562) }
     fn vacuum() -> Shell { shell(1640.0, 4.3, 0.032, 0.0) }
@@ -628,5 +712,30 @@ mod tests {
         assert_eq!(out[37] & 1, 1);
         assert_eq!(out[200] & 1, 0);
         assert_eq!(out[200] & 2, 2);
+    }
+
+    #[test]
+    fn rocket_motor_bm_31_12_solves_arcs() {
+        let m31 = Shell {
+            kind: "rocket_tank".into(),
+            type_title: None,
+            v0: 245.0,
+            m: 91.5,
+            cal: 0.3,
+            cx: 0.825,
+            name: "300mm M-31UK".into(),
+            en: None,
+            cx_est: false,
+            rocket: Some(RocketMotor { v_start: 0.0, force0: 20700.0, t_fire0: 1.0, m_end0: 80.25, ..Default::default() }),
+        };
+        let tr45 = simulate(&m31, 45.0 * DEG, 0.0, 6000.0, SimOpt { y_floor: Some(-1.0), ..Default::default() });
+        let peak_v = tr45.v.iter().copied().fold(0.0f64, f64::max);
+        assert!(peak_v > 225.0 && peak_v < 255.0, "peak_v={peak_v}");
+        let max_range = *tr45.s.last().unwrap();
+        assert!(max_range > 2100.0 && max_range < 2600.0, "max_range={max_range}");
+        let sols = solve_exact(&m31, 1800.0, 0.0, 0.0, 10.0, 48.0);
+        assert_eq!(sols.len(), 1, "BM-31-12 low arc hits 1800 m within 10..48 deg");
+        let sols_high = solve_exact(&m31, 1800.0, 0.0, 0.0, 10.0, 80.0);
+        assert_eq!(sols_high.len(), 2, "both low and high arcs exist up to 80 deg");
     }
 }

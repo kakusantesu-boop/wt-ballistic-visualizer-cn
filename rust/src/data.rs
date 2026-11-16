@@ -51,6 +51,8 @@ fn data_url_image(url: &str) -> Result<image::RgbaImage> {
 #[derive(Deserialize, Clone)]
 pub struct Gun {
     pub weapon: String,
+    #[serde(default)]
+    pub title: Option<String>,
     pub pitch: [f64; 2],
     pub shells: Vec<Shell>,
 }
@@ -59,12 +61,18 @@ pub struct Tank {
     pub id: String,
     pub name: String,
     #[serde(default)]
+    pub en: Option<String>,
+    #[serde(default)]
     pub model: Option<String>,
     pub guns: Vec<Gun>,
 }
 #[derive(Deserialize, Clone)]
 pub struct MapEntry {
     pub name: String,
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub en: Option<String>,
     pub width: usize,
     pub cell: f64,
     #[serde(default)]
@@ -103,6 +111,8 @@ pub struct Area {
 #[derive(Deserialize, Clone, Debug)]
 pub struct Mission {
     pub name: String,
+    #[serde(default)]
+    pub title: Option<String>,
     pub areas: Vec<Area>,
 }
 #[derive(Deserialize, Clone, Debug)]

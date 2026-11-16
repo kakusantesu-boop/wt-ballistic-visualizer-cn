@@ -16,9 +16,9 @@ impl GameMode {
     pub const ALL: [GameMode; 3] = [GameMode::Arcade, GameMode::Realistic, GameMode::Simulator];
     pub fn label(self) -> &'static str {
         match self {
-            GameMode::Arcade => "Arcade",
-            GameMode::Realistic => "Realistic",
-            GameMode::Simulator => "Simulator",
+            GameMode::Arcade => "街机娱乐",
+            GameMode::Realistic => "历史性能",
+            GameMode::Simulator => "全真模拟",
         }
     }
     /// Which area variant a mode uses, in order of preference ("" = the unsuffixed area).
@@ -229,7 +229,7 @@ pub struct Aim {
 }
 
 fn what(t: &Terrain, a: Pt, dir: (f64, f64), s: f64) -> &'static str {
-    ["terrain", "an object", "trees/bushes"][t.src_at(a.x + dir.0 * s, a.z + dir.1 * s).min(2) as usize]
+    ["地形", "建筑/岩石掩体", "树木/灌木"][t.src_at(a.x + dir.0 * s, a.z + dir.1 * s).min(2) as usize]
 }
 
 /// tc: what shots collide with, ts: what blocks sight.
@@ -266,27 +266,27 @@ pub fn aim_lines(aim: &Aim, p: &Params) -> Vec<(String, u8)> {
     let mut out = vec![];
     let los_ang = aim.dy.atan2(aim.d);
     let az = (aim.dir.0.atan2(aim.dir.1) / DEG + 360.0) % 360.0;
-    out.push((format!("Distance   {:.1} m (slant {:.1} m)", aim.d, aim.d.hypot(aim.dy)), 0));
-    out.push((format!("Height     A {:.1}  B {:.1}  Δ {}{:.1} m", aim.g_a, aim.g_b, if aim.dy >= 0.0 { "+" } else { "" }, aim.dy), 0));
-    out.push((format!("Azimuth    {az:.1}°   LOS {:.2}°", los_ang / DEG), 0));
+    out.push((format!("水平距离  {:.1} m（斜距 {:.1} m）", aim.d, aim.d.hypot(aim.dy)), 0));
+    out.push((format!("海拔高差  A {:.1}  B {:.1}  Δ {}{:.1} m", aim.g_a, aim.g_b, if aim.dy >= 0.0 { "+" } else { "" }, aim.dy), 0));
+    out.push((format!("方位角    {az:.1}°   视线高低角 {:.2}°", los_ang / DEG), 0));
     match aim.los {
-        None => out.push(("Sight line CLEAR".into(), 1)),
-        Some(s) => out.push((format!("Sight line BLOCKED at {s:.0} m by {}", aim.los_by), 2)),
+        None => out.push(("视线畅通（无遮挡）".into(), 1)),
+        Some(s) => out.push((format!("视线在 {s:.0} m 处被{}遮挡", aim.los_by), 2)),
     }
     if aim.d > 1.0 && aim.sols.is_empty() {
-        out.push((format!("No solution within pitch {}..{}° (out of range?)", p.p_min, p.p_max), 2));
+        out.push((format!("俯仰角 {}..{}° 内无射击诸元（超出射程或仰角不足）", p.p_min, p.p_max), 2));
     }
     for (i, q) in aim.sols.iter().enumerate() {
         let hold = aim.d * q.e.tan() - aim.dy;
-        let name = if aim.sols.len() > 1 { if i > 0 { "High arc" } else { "Low arc" } } else { "Solution" };
+        let name = if aim.sols.len() > 1 { if i > 0 { "高抛弹道（曲射）" } else { "低伸弹道（直射）" } } else { "弹道诸元" };
         out.push((String::new(), 0));
         match q.blocked {
-            None => out.push((format!("{name}: HITS"), 1)),
-            Some(s) => out.push((format!("{name}: BLOCKED at {s:.0} m by {}", q.by), 2)),
+            None => out.push((format!("{name}：可命中目标"), 1)),
+            Some(s) => out.push((format!("{name}：在 {s:.0} m 处被{}阻挡", q.by), 2)),
         }
-        out.push((format!("  gun elev   {:.3}°  ({} mil)", q.e / DEG, mil(q.e)), 0));
-        out.push((format!("  over LOS   {} mil  = aim {hold:.2} m above B", mil(q.e - los_ang)), 0));
-        out.push((format!("  flight     {:.2} s, impact {:.0} m/s", q.t, q.v), 0));
+        out.push((format!("  火炮仰角  {:.3}°（{} 密位）", q.e / DEG, mil(q.e)), 0));
+        out.push((format!("  瞄准抬高  {} 密位 = 瞄在 B 上方 {hold:.2} m", mil(q.e - los_ang)), 0));
+        out.push((format!("  飞行时间  {:.2} s，落点存速 {:.0} m/s", q.t, q.v), 0));
     }
     out
 }
@@ -318,9 +318,9 @@ impl Perf {
     }
     pub fn label(self) -> &'static str {
         match self {
-            Perf::Fast => "Fast: 360 rays, 8 m, 0.1°",
-            Perf::Balanced => "Balanced: 720 rays, 4 m, 0.05°",
-            Perf::Precise => "Precise: 1440 rays, 2 m, 0.02°",
+            Perf::Fast => "快速：360 方向, 8 m, 0.1°",
+            Perf::Balanced => "均衡：720 方向, 4 m, 0.05°",
+            Perf::Precise => "精细：1440 方向, 2 m, 0.02°",
         }
     }
 }
@@ -427,7 +427,7 @@ mod tests {
 
     #[test]
     fn mode_variants_fall_back_like_the_page() {
-        let m = Mission { name: "m".into(), areas: vec![area("kill_a", "kill", None), area("kill_a", "kill", Some("simulator")), area("battle_x", "battle", Some("arcade"))] };
+        let m = Mission { name: "m".into(), title: None, areas: vec![area("kill_a", "kill", None), area("kill_a", "kill", Some("simulator")), area("battle_x", "battle", Some("arcade"))] };
         let names = |md| mission_areas(&m, md).iter().map(|a| a.mode.clone().unwrap_or_default()).collect::<Vec<_>>();
         assert_eq!(names(GameMode::Simulator), ["simulator", "arcade"]);
         assert_eq!(names(GameMode::Realistic), ["", "arcade"]); // realistic falls back to arcade, then ""

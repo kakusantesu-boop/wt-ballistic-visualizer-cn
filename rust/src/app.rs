@@ -49,8 +49,12 @@ impl SearchableListItem for Item {
         div().w_full().flex().justify_between().gap_2().child(self.title.clone()).when_some(self.note.clone(), |d, n| d.child(div().text_xs().opacity(0.6).child(n)))
     }
     fn matches(&self, q: &str) -> bool {
-        let q = q.to_lowercase();
-        self.title.to_lowercase().contains(&q) || self.search.contains(&q.replace(' ', "_"))
+        let q = q.trim().to_lowercase();
+        let q_ns = q.replace(' ', "");
+        self.title.to_lowercase().contains(&q)
+            || self.search.contains(&q)
+            || self.search.contains(&q_ns)
+            || self.search.contains(&q.replace(' ', "_"))
     }
 }
 fn items<S: Into<SharedString>>(titles: impl IntoIterator<Item = S>) -> Vec<Item> {
@@ -187,11 +191,18 @@ impl Viewer {
         let store = Arc::new(data::Store::open());
         let (index, load_err) = match data::load_index(&store) {
             Ok(i) => (Arc::new(i), None),
-            Err(e) => (Arc::new(Index { maps: vec![], tanks: vec![] }), Some(format!("No map data ({}): {e:#}. Use the bundled build, or put the data folder next to wtv.exe.", store.describe()))),
+            Err(e) => (Arc::new(Index { maps: vec![], tanks: vec![] }), Some(format!("未找到地图数据（{}）：{e:#}。请运行单文件打包版，或将 data 文件夹放到程序同目录下。", store.describe()))),
         };
         let last = Last::load();
-        let map_items: Vec<Item> = index.maps.iter().enumerate().map(|(i, m)| Item { title: map_title(&m.name).into(), search: m.name.clone(), value: i, note: Some(format!("{:.1} km", m.width as f64 * m.cell / 1000.0).into()) }).collect();
-        let tank_items: Vec<Item> = index.tanks.iter().enumerate().map(|(i, t)| Item { title: t.name.clone().into(), search: t.id.clone(), value: i, note: None }).collect();
+        let map_items: Vec<Item> = index.maps.iter().enumerate().map(|(i, m)| {
+            let title = m.title.clone().unwrap_or_else(|| map_title(&m.name));
+            let search = format!("{} {} {} {}", m.name, map_title(&m.name), m.en.as_deref().unwrap_or(""), title.replace(' ', "")).to_lowercase();
+            Item { title: title.into(), search, value: i, note: Some(format!("{:.1} km", m.width as f64 * m.cell / 1000.0).into()) }
+        }).collect();
+        let tank_items: Vec<Item> = index.tanks.iter().enumerate().map(|(i, t)| {
+            let search = format!("{} {} {}", t.id, t.en.as_deref().unwrap_or(""), t.name.replace(' ', "")).to_lowercase();
+            Item { title: t.name.clone().into(), search, value: i, note: None }
+        }).collect();
         let map_i = last.map.as_ref().and_then(|n| index.maps.iter().position(|m| &m.name == n)).unwrap_or(0);
         let tank_i = last.tank.as_ref().and_then(|n| index.tanks.iter().position(|t| &t.id == n)).unwrap_or(0);
         let sel = |items: Vec<Item>, i: usize, window: &mut Window, cx: &mut Context<Self>| -> Sel {
@@ -202,7 +213,7 @@ impl Viewer {
         let tank_sel = sel(tank_items, tank_i, window, cx);
         let mission_sel = sel(vec![], 0, window, cx);
         let mode_sel = sel(items(GameMode::ALL.map(|m| m.label())), 1, window, cx);
-        let view_sel = sel(items(["2D map", "3D orbit", "3D aim: from A at B", "3D gunner sight from A"]), 0, window, cx);
+        let view_sel = sel(items(["2D 俯视地图", "3D 自由环绕", "3D 炮口视角（A → B）", "3D 炮长瞄准镜"]), 0, window, cx);
         let shell_sel = sel(vec![], 0, window, cx);
         let detail_sel = sel(items(view3d::DETAIL_LABELS), 2, window, cx);
         let perf_sel = sel(items(Perf::ALL.map(|p| p.label())), 1, window, cx);
@@ -236,7 +247,7 @@ impl Viewer {
         if let Some(e) = load_err {
             this.set_status(e, true);
         } else if this.index.maps.is_empty() {
-            this.set_status("No maps in data/index.js: run extractor/extract.py", true);
+            this.set_status("data/index.js 中无地图数据：请先运行 extractor/extract.py", true);
         } else {
             this.pick_tank(tank_i, last.shell, window, cx);
             this.load_tank(TARGET_MODEL, cx);
@@ -309,9 +320,10 @@ impl Viewer {
 
     fn load_map(&mut self, i: usize, cx: &mut Context<Self>) {
         let Some(entry) = self.index.maps.get(i).cloned() else { return };
+        let mtitle = entry.title.clone().unwrap_or_else(|| map_title(&entry.name));
         self.map_gen += 1;
         let gen_ = self.map_gen;
-        self.set_status(format!("Loading {}…", map_title(&entry.name)), false);
+        self.set_status(format!("正在加载 {}…", mtitle), false);
         let dir = self.store.clone();
         cx.spawn(async move |this, cx| {
             let name = entry.name.clone();
@@ -333,27 +345,27 @@ impl Viewer {
                     map
                 }
                 Err(e) => {
-                    this.update(cx, |this, cx| { this.set_status(format!("Map load failed: {e:#}"), true); cx.notify(); }).ok();
+                    this.update(cx, |this, cx| { this.set_status(format!("地图加载失败：{e:#}"), true); cx.notify(); }).ok();
                     return;
                 }
             };
             if !entry.objects && !entry.ground {
                 return;
             }
-            this.update(cx, |this, cx| { this.set_status(format!("Loading objects, trees and ground colours of {}…", map_title(&entry.name)), false); cx.notify(); }).ok();
+            this.update(cx, |this, cx| { this.set_status(format!("正在加载 {} 的建筑掩体、树木与地表贴图…", mtitle), false); cx.notify(); }).ok();
             let full = cx.background_spawn(async move {
                 let mut m = (*map).clone();
                 let mut notes = vec![];
                 if entry.objects {
                     match data::load_objects(&dir, &entry.name).and_then(|o| m.set_objects(o)) {
                         Ok(()) => {}
-                        Err(e) => notes.push(format!("Objects failed: {e:#}")),
+                        Err(e) => notes.push(format!("掩体模型加载失败：{e:#}")),
                     }
                 }
                 if entry.ground {
                     match data::load_ground(&dir, &entry.name) {
                         Ok(g) => m.ground = Some(Arc::new(g)),
-                        Err(e) => notes.push(format!("Ground colours failed: {e:#}")),
+                        Err(e) => notes.push(format!("地表贴图加载失败：{e:#}")),
                     }
                 }
                 let img = raster::compose(&m);
@@ -366,7 +378,7 @@ impl Viewer {
                 let (m, img, notes) = full;
                 let msg = match (&m.obj, notes.first()) {
                     (_, Some(n)) => (n.clone(), true),
-                    (Some(o), None) => (format!("{} objects, {} trees and bushes", o.inst.len(), o.trees.len()), false),
+                    (Some(o), None) => (format!("已加载 {} 处建筑/岩石掩体，{} 棵树木与灌木", o.inst.len(), o.trees.len()), false),
                     (None, None) => (String::new(), false),
                 };
                 this.map = Some(Arc::new(m));
@@ -392,9 +404,17 @@ impl Viewer {
         if gen_ != self.map_gen {
             return false;
         }
-        let names: Vec<String> = map.meta.missions.iter().map(|m| m.name.clone()).collect();
-        self.mission = names.iter().position(|n| n.ends_with("_dom")).unwrap_or(0);
-        let (mission, gen_items) = (self.mission, items(if names.is_empty() { vec!["(none)".to_string()] } else { names }));
+        self.mission = map.meta.missions.iter().position(|m| m.name.ends_with("_dom")).unwrap_or(0);
+        let gen_items: Vec<Item> = if map.meta.missions.is_empty() {
+            items(["（无任务配置）"])
+        } else {
+            map.meta.missions.iter().enumerate().map(|(i, m)| {
+                let title = m.title.clone().unwrap_or_else(|| m.name.clone());
+                let search = format!("{} {}", m.name, title.replace(' ', "")).to_lowercase();
+                Item { title: title.into(), search, value: i, note: None }
+            }).collect()
+        };
+        let mission = self.mission;
         self.water = map.meta.water.map(|lvl| Layer::new(raster::water(&map.t, lvl)));
         self.map = Some(map);
         self.map_img = Some(Layer::new(img));
@@ -453,17 +473,42 @@ impl Viewer {
         let Some(t) = self.index.tanks.get(i).cloned() else { return };
         self.tank = i;
         let mut keys = vec![];
-        let mut titles = vec![];
+        let mut shell_items = vec![];
         for (gi, g) in t.guns.iter().enumerate() {
+            let gname = g.title.as_deref().unwrap_or(&g.weapon);
             for (si, s) in g.shells.iter().enumerate() {
+                let idx_val = keys.len();
                 keys.push((gi, si));
-                titles.push(format!("{}{} ({}) {} m/s{}", if t.guns.len() > 1 { format!("{}: ", g.weapon) } else { String::new() }, s.name, s.kind.trim_end_matches("_tank"), s.v0.round(), if s.cx_est { " · est. drag" } else { "" }));
+                let stype = s.type_title.as_deref().unwrap_or_else(|| s.kind.trim_end_matches("_tank"));
+                let spd_str = match &s.rocket {
+                    Some(rm) if rm.force0 > 0.0 && rm.t_fire0 > 0.0 => {
+                        if rm.v_start > 1.0 {
+                            format!("初速{:.0}→{:.0} m/s", rm.v_start, s.v0)
+                        } else {
+                            format!("助推{:.1}s→{:.0} m/s", rm.t_fire0 + rm.t_fire1, s.v0)
+                        }
+                    }
+                    _ => format!("{} m/s", s.v0.round()),
+                };
+                let extra = format!(
+                    "{}{}",
+                    if s.rocket.as_ref().is_some_and(|r| r.guided) { " · 制导" } else { "" },
+                    if s.cx_est { " · 估算风阻" } else { "" }
+                );
+                let title = format!(
+                    "{}{} ({}) {spd_str}{extra}",
+                    if t.guns.len() > 1 { format!("{gname}: ") } else { String::new() },
+                    s.name,
+                    stype,
+                );
+                let search = format!("{} {} {} {}", g.weapon, s.kind, s.en.as_deref().unwrap_or(""), title.replace(' ', "")).to_lowercase();
+                shell_items.push(Item { title: title.into(), search, value: idx_val, note: None });
             }
         }
         let k = shell_key.and_then(|k| keys.iter().position(|q| format!("{}:{}", q.0, q.1) == k)).unwrap_or(0);
         self.gun_shell = keys.get(k).copied().unwrap_or((0, 0));
         let ss = self.shell_sel.clone();
-        ss.update(cx, |s, cx| { s.set_items(SearchableVec::new(items(titles)), window, cx); s.set_selected_index(Some(IndexPath::new(k)), window, cx); });
+        ss.update(cx, |s, cx| { s.set_items(SearchableVec::new(shell_items), window, cx); s.set_selected_index(Some(IndexPath::new(k)), window, cx); });
         if let Some(m) = &t.model {
             self.load_tank(m, cx);
         }
@@ -474,7 +519,10 @@ impl Viewer {
         let t = &self.index.tanks[self.tank];
         let keys: Vec<(usize, usize)> = t.guns.iter().enumerate().flat_map(|(gi, g)| (0..g.shells.len()).map(move |si| (gi, si))).collect();
         self.gun_shell = keys.get(k).copied().unwrap_or((0, 0));
-        let pitch = t.guns.get(self.gun_shell.0).map_or([-10.0, 20.0], |g| g.pitch);
+        let mut pitch = t.guns.get(self.gun_shell.0).map_or([-10.0, 20.0], |g| g.pitch);
+        if (pitch[1] - pitch[0]).abs() < 0.1 {
+            pitch = [pitch[0] - 15.0, pitch[1] + 25.0];
+        }
         self.pmin.update(cx, |s, cx| s.set_value(pitch[0].to_string(), window, cx));
         self.pmax.update(cx, |s, cx| s.set_value(pitch[1].to_string(), window, cx));
         self.remember(cx);
@@ -569,7 +617,7 @@ impl Viewer {
                 self.view.cz = z;
                 self.v3.fit(&map.t, x, z, 900.0);
             }
-            None => self.set_status("No valid ground", true),
+            None => self.set_status("未找到有效可用地面", true),
         }
         self.v3.dirty();
         cx.notify();
@@ -579,7 +627,7 @@ impl Viewer {
         let (Some(map), Some(shell)) = (self.map.clone(), self.shell().cloned()) else { return };
         let pt = if kind == SweepKind::Hit { self.b } else { self.a };
         let Some(pt) = pt else {
-            self.set_status(if kind == SweepKind::Hit { "Place B first (right click)." } else { "Place A first (left click)." }, true);
+            self.set_status(if kind == SweepKind::Hit { "请先放置目标点 B（鼠标右键点击地图）。" } else { "请先放置开火点 A（鼠标左键点击地图）。" }, true);
             cx.notify();
             return;
         };
@@ -595,8 +643,8 @@ impl Viewer {
             }
             z
         });
-        let label = match kind { SweepKind::Reach => "Reach from A", SweepKind::Hit => "Hit B", SweepKind::View => "Visibility from A" };
-        self.set_status(format!("{label}: computing on {} threads…", rayon::current_num_threads()), false);
+        let label = match kind { SweepKind::Reach => "A 点火力覆盖", SweepKind::Hit => "可打击 B 点的阵地", SweepKind::View => "A 点视野通视" };
+        self.set_status(format!("{label}：正在使用 {} 线程并行解算…", rayon::current_num_threads()), false);
         let t0 = std::time::Instant::now();
         self.sweeping = Some(cx.spawn(async move |this, cx| {
             let ov = cx.background_spawn(async move {
@@ -604,8 +652,8 @@ impl Viewer {
                 scene::run_sweep(kind, &map, t, &shell, pt, &p, perf, zones.as_ref())
             }).await;
             this.update(cx, |this, cx| {
-                let what = match kind { SweepKind::Reach => "Reach", SweepKind::Hit => "Hit", SweepKind::View => "Visible" };
-                this.set_status(format!("{what}: {:.2} km² in {:.1} s", ov.km2, t0.elapsed().as_secs_f64()), false);
+                let what = match kind { SweepKind::Reach => "火力覆盖面积", SweepKind::Hit => "可打击阵地面积", SweepKind::View => "可见区域面积" };
+                this.set_status(format!("{what}：{:.2} km²（耗时 {:.1} s）", ov.km2, t0.elapsed().as_secs_f64()), false);
                 let layer = Layer::new(ov.img.clone());
                 this.overlay = Some((ov, layer));
                 this.sweeping = None;
@@ -661,7 +709,7 @@ impl Viewer {
     fn mouse_move(&mut self, ev: &MouseMoveEvent, _: &mut Window, cx: &mut Context<Self>) {
         if let (Some(map), true) = (self.map.clone(), self.map_bounds.contains(&ev.position)) {
             self.hud = match self.world_at(ev.position) {
-                Some(p) => format!("X {:.1}  Z {:.1}  H {:.2} m{}", p.x, p.z, map.stand(p.x, p.z), self.a.map_or(String::new(), |a| format!("   from A {:.1} m", (p.x - a.x).hypot(p.z - a.z)))),
+                Some(p) => format!("X {:.1}  Z {:.1}  海拔 {:.2} m{}", p.x, p.z, map.stand(p.x, p.z), self.a.map_or(String::new(), |a| format!("   距 A {:.1} m", (p.x - a.x).hypot(p.z - a.z)))),
                 None => String::new(),
             };
             cx.notify();
@@ -776,7 +824,7 @@ impl Viewer {
         }
         if let Some(k) = Self::drive_key(&ev.keystroke.key) {
             if self.a.is_none() {
-                self.set_status("Place A first (left click), then drive it with W A S D.", true);
+                self.set_status("请先左键点击地图放置战车 A，随后可用 W A S D 驾驶移动。", true);
                 cx.notify();
                 return;
             }
@@ -885,16 +933,16 @@ impl Viewer {
         div().flex().flex_col().gap_1().pl(px(44.)).when(!zones.is_empty(), |d| {
             d.child(
                 div().id("red-list").flex().items_center().gap_1().cursor_pointer().text_xs().text_color(rgb(MUTED))
-                    .child(format!("{} Choose red zones ({shown} of {} on)", if open { "▾" } else { "▸" }, zones.len()))
+                    .child(format!("{} 选择禁区红区（已开启 {shown}/{}）", if open { "▾" } else { "▸" }, zones.len()))
                     .on_click(cx.listener(|this, _, _, cx| { this.red_open = !this.red_open; cx.notify(); })),
             )
             .when(open, |d| {
                 d.child(div().flex().gap_2()
-                    .child(Button::new("red-all").label("All on").xsmall().on_click(cx.listener(move |this, _, _, cx| this.set_red(on_all.clone(), true, cx))))
-                    .child(Button::new("red-none").label("All off").xsmall().on_click(cx.listener(move |this, _, _, cx| this.set_red(off_all.clone(), false, cx)))))
+                    .child(Button::new("red-all").label("全部开启").xsmall().on_click(cx.listener(move |this, _, _, cx| this.set_red(on_all.clone(), true, cx))))
+                    .child(Button::new("red-none").label("全部关闭").xsmall().on_click(cx.listener(move |this, _, _, cx| this.set_red(off_all.clone(), false, cx)))))
                 .children(zones.into_iter().enumerate().map(|(i, (name, team))| {
                     let label = name.replace('_', " ");
-                    let who = match team { Some(1) => "team 1", Some(2) => "team 2", _ => "both" };
+                    let who = match team { Some(1) => "1 队禁区", Some(2) => "2 队禁区", _ => "双方禁区" };
                     let n = name.clone();
                     Checkbox::new(("red-zone", i)).checked(!self.hidden_red.contains(&name)).label(format!("{}.  {label} · {who}", i + 1))
                         .on_click(cx.listener(move |this, on: &bool, _, cx| this.set_red([n.clone()], *on, cx)))
@@ -904,64 +952,73 @@ impl Viewer {
     }
 
     fn sidebar(&mut self, cx: &mut Context<Self>) -> impl IntoElement {
-        let high_txt = self.high_shown().map(|(x, z, h)| format!("{h:.1} m at X {x:.0}, Z {z:.0}")).unwrap_or_default();
+        let high_txt = self.high_shown().map(|(x, z, h)| format!("{h:.1} m（X {x:.0}, Z {z:.0}）")).unwrap_or_default();
         let aim_lines: Vec<(String, u8)> = match &self.aim {
             Some(a) => scene::aim_lines(a, &self.params(cx)),
-            None => vec![(if self.map.is_some() { "Left click A, right click B." } else { "Load a map." }.to_string(), 0)],
+            None => vec![(if self.map.is_some() { "左键点击放置开火点 A，右键点击放置目标点 B。" } else { "请先加载一张地图。" }.to_string(), 0)],
         };
-        let help = [("Left click", "firing point A"), ("Right click", "target B"), ("Wheel", "zoom (aim view: field of view)"), ("2D drag", "pan"), ("3D drag", "rotate; right or shift drag pans; double click centres"), ("W A S D", "drive A's tank: forward, back, steer (arrows too; click the map first)"), ("R", "map border on / off"), ("/", "search levels")];
-        div().id("sidebar").w(px(340.)).h_full().flex_none().flex().flex_col().gap_3().p_3().overflow_y_scroll().bg(rgb(PANEL)).border_r_1().border_color(rgb(BORDER))
+        let help = [
+            ("鼠标左键", "放置己方开火点 A"),
+            ("鼠标右键", "放置目标点 B"),
+            ("鼠标滚轮", "缩放地图（瞄准镜下调节变倍/视场）"),
+            ("2D 拖动", "平移地图"),
+            ("3D 拖动", "左键旋转视角；右键或 Shift+拖动平移；双击居中"),
+            ("W A S D", "驾驶 A 点战车前进/倒车/转向（支持方向键，需先点击地图）"),
+            ("R 键", "开启 / 关闭战场边界显示"),
+            ("/ 键", "聚焦地图搜索框"),
+        ];
+        div().id("sidebar").w(px(350.)).h_full().flex_none().flex().flex_col().gap_3().p_3().overflow_y_scroll().bg(rgb(PANEL)).border_r_1().border_color(rgb(BORDER))
             .child(div().flex().items_center().gap_2().child(div().px_1p5().py_0p5().rounded_md().bg(rgb(COL_A)).text_color(rgb(0x111111)).font_weight(FontWeight::BOLD).child("WT"))
-                .child(div().flex().flex_col().child(div().font_weight(FontWeight::BOLD).child("Ballistic Visualizer")).child(div().text_xs().text_color(rgb(MUTED)).child("Ground battle maps, zones and shell arcs"))))
-            .child(card("Map")
-                .child(field("Level", Select::new(&self.map_sel).search_placeholder("Search levels…")))
-                .child(div().flex().gap_2().child(field("View", Select::new(&self.view_sel))).child(field("Game mode", Select::new(&self.mode_sel))))
-                .child(field("Mission (zones differ per mission and mode)", Select::new(&self.mission_sel)))
-                .child(div().flex().items_center().gap_2().child(Button::new("high").label("Find highest point").small().on_click(cx.listener(|this, _, _, cx| this.find_high(cx))))
+                .child(div().flex().flex_col().child(div().font_weight(FontWeight::BOLD).child("婴儿弹道计算机")).child(div().text_xs().text_color(rgb(MUTED)).child("战争雷霆陆战精细地图、战区边界与三维弹道解算"))))
+            .child(card("地图与任务")
+                .child(field("作战地图", Select::new(&self.map_sel).search_placeholder("输入中英文搜索地图…")))
+                .child(div().flex().gap_2().child(field("观察视角", Select::new(&self.view_sel))).child(field("游戏模式", Select::new(&self.mode_sel))))
+                .child(field("任务布局（不同任务与模式的战区和红区不同）", Select::new(&self.mission_sel).search_placeholder("搜索任务模式…")))
+                .child(div().flex().items_center().gap_2().child(Button::new("high").label("寻找最高点").small().on_click(cx.listener(|this, _, _, cx| this.find_high(cx))))
                     .child(div().text_xs().text_color(rgb(MUTED)).child(high_txt))))
-            .child(card("Layers")
-                .child(self.switch("sw-border", Sw::Border, "Map border", Some("Outside the battle area, inside the map bounds (countdown)"), Some(0xe61414), cx))
-                .child(self.switch("sw-red", Sw::Red, "Red zones", Some("Placed kill areas (countdown inside)"), Some(0x8c0000), cx))
+            .child(card("地图图层与遮挡")
+                .child(self.switch("sw-border", Sw::Border, "战场边界", Some("超出作战区域但仍在地图内（越界倒计时区）"), Some(0xe61414), cx))
+                .child(self.switch("sw-red", Sw::Red, "禁区红区", Some("出生点保护与禁入杀伤区（进入触发倒计时）"), Some(0x8c0000), cx))
                 .child(self.red_list(cx))
-                .child(self.switch("sw-caps", Sw::Caps, "Capture zones and spawns", None, Some(0xf2d14b), cx))
-                .child(self.switch("sw-water", Sw::Water, "Water", None, Some(0x3c8cc0), cx))
-                .child(self.switch("sw-grid", Sw::Grid, "100 m grid", None, None, cx))
-                .child(self.switch("sw-build", Sw::Build, "Objects in 3D", Some("Buildings always block"), None, cx))
-                .child(self.switch("sw-trees", Sw::Trees, "Trees and bushes in 3D", None, None, cx))
-                .child(self.switch("sw-tanks", Sw::Tanks, "Tank models in 3D", Some("At A your tank, at B a T-72A, facing each other"), None, cx))
-                .child(self.switch("sw-detail", Sw::GroundDetail, "Ground detail textures up close (3D)", None, None, cx))
-                .child(self.switch("sw-vsight", Sw::VegSight, "Trees and bushes block sight", None, None, cx))
-                .child(self.switch("sw-vshots", Sw::VegShots, "Trees and bushes block shots", None, None, cx)))
-            .child(card("Gun")
-                .child(field("Tank", Select::new(&self.tank_sel).search_placeholder("Type to search…")))
-                .child(field("Shell", Select::new(&self.shell_sel)))
-                .child(div().flex().gap_2().child(field("Pitch min °", Input::new(&self.pmin).small())).child(field("Pitch max °", Input::new(&self.pmax).small())).child(field("Max range m", Input::new(&self.range).small())))
-                .child(div().flex().gap_2().child(field("Gun height m", Input::new(&self.gun_h).small())).child(field("Target height m", Input::new(&self.tgt_h).small()))))
-            .child(card("Aim A → B")
-                .child(div().flex().flex_col().font_family("Consolas").text_xs().children(aim_lines.into_iter().map(|(s, k)| {
-                    div().min_h(px(14.)).text_color(rgb([0xd8dde2, 0x58c472, 0xe2574c][k as usize])).child(s)
+                .child(self.switch("sw-caps", Sw::Caps, "占领战区与出生点", None, Some(0xf2d14b), cx))
+                .child(self.switch("sw-water", Sw::Water, "水体", None, Some(0x3c8cc0), cx))
+                .child(self.switch("sw-grid", Sw::Grid, "100 m 坐标网格", None, None, cx))
+                .child(self.switch("sw-build", Sw::Build, "3D 建筑与岩石物体", Some("大型建筑、巨石与围墙始终阻挡炮弹"), None, cx))
+                .child(self.switch("sw-trees", Sw::Trees, "3D 树木与灌木", None, None, cx))
+                .child(self.switch("sw-tanks", Sw::Tanks, "3D 坦克模型", Some("A 点为己方载具，B 点为靶车 T-72A（相对朝向）"), None, cx))
+                .child(self.switch("sw-detail", Sw::GroundDetail, "3D 近景地表细节贴图", None, None, cx))
+                .child(self.switch("sw-vsight", Sw::VegSight, "树木与灌木阻挡视线", None, None, cx))
+                .child(self.switch("sw-vshots", Sw::VegShots, "树木与灌木引爆/阻挡炮弹", None, None, cx)))
+            .child(card("载具火炮与弹药")
+                .child(field("载具型号", Select::new(&self.tank_sel).search_placeholder("输入中英文或系别搜索载具…")))
+                .child(field("选用弹药", Select::new(&self.shell_sel).search_placeholder("搜索弹种或弹药名称…")))
+                .child(div().flex().gap_2().child(field("最大俯角 °", Input::new(&self.pmin).small())).child(field("最大仰角 °", Input::new(&self.pmax).small())).child(field("扫描射程 m", Input::new(&self.range).small())))
+                .child(div().flex().gap_2().child(field("火炮离地高 m", Input::new(&self.gun_h).small())).child(field("目标受弹高 m", Input::new(&self.tgt_h).small()))))
+            .child(card("弹道解算 A → B")
+                .child(div().flex().flex_col().font_family("Microsoft YaHei UI").text_xs().children(aim_lines.into_iter().map(|(s, k)| {
+                    div().min_h(px(15.)).text_color(rgb([0xd8dde2, 0x58c472, 0xe2574c][k as usize])).child(s)
                 })))
-                .child(self.switch("sw-arc", Sw::Arc, "Shell arc in 3D", Some("Path, drop curtain, apex and impact"), None, cx)))
-            .child(card("Sweeps")
-                .child(div().flex().gap_2().child(field("3D terrain detail", Select::new(&self.detail_sel))).child(field("Sweep performance", Select::new(&self.perf_sel))))
-                .child(self.switch("sw-clip", Sw::Clip, "Only battle area", Some("Hit target B also skips red zones"), None, cx))
+                .child(self.switch("sw-arc", Sw::Arc, "3D 弹道轨迹弧线", Some("显示飞行轨迹、落差垂幕、弹道顶点与落点"), None, cx)))
+            .child(card("全图扫描分析")
+                .child(div().flex().gap_2().child(field("3D 地形精度", Select::new(&self.detail_sel))).child(field("扫描计算精度", Select::new(&self.perf_sel))))
+                .child(self.switch("sw-clip", Sw::Clip, "仅限作战区域内", Some("反推可打击 B 的阵地时自动排除红区禁区"), None, cx))
                 .child(div().flex().gap_2()
-                    .child(Button::new("reach").primary().label("Reach from A").flex_1().on_click(cx.listener(|this, _, _, cx| this.run_sweep(SweepKind::Reach, cx))))
-                    .child(Button::new("hit").primary().label("Hit target B").flex_1().on_click(cx.listener(|this, _, _, cx| this.run_sweep(SweepKind::Hit, cx)))))
-                .child(Button::new("view").primary().label("Visibility from A").on_click(cx.listener(|this, _, _, cx| this.run_sweep(SweepKind::View, cx))))
+                    .child(Button::new("reach").primary().label("A 点火力覆盖").flex_1().on_click(cx.listener(|this, _, _, cx| this.run_sweep(SweepKind::Reach, cx))))
+                    .child(Button::new("hit").primary().label("可打到 B 的阵地").flex_1().on_click(cx.listener(|this, _, _, cx| this.run_sweep(SweepKind::Hit, cx)))))
+                .child(Button::new("view").primary().label("A 点视野通视分析").on_click(cx.listener(|this, _, _, cx| this.run_sweep(SweepKind::View, cx))))
                 .child(div().flex().gap_2()
-                    .child(Button::new("clear").label("Clear overlay").flex_1().on_click(cx.listener(|this, _, _, cx| { this.overlay = None; this.v3.dirty(); cx.notify(); })))
-                    .child(Button::new("center").label("Center map").flex_1().on_click(cx.listener(|this, _, _, cx| { this.center_map(); this.v3.dirty(); cx.notify(); }))))
-                .child(div().text_xs().text_color(rgb(MUTED)).child("Collision: HM2 terrain plus large objects (buildings, big rocks, walls) as solid blocks up to their tops: no windows, gaps under bridges or overhangs. Tree and bush crowns are solid columns too when they block. Fences, kerbs and debris never block.")))
-            .child(card("Controls").children(help.map(|(k, v)| div().flex().gap_2().text_xs().child(div().w(px(80.)).font_weight(FontWeight::BOLD).child(k)).child(div().flex_1().text_color(rgb(MUTED)).child(v)))))
+                    .child(Button::new("clear").label("清除扫描图层").flex_1().on_click(cx.listener(|this, _, _, cx| { this.overlay = None; this.v3.dirty(); cx.notify(); })))
+                    .child(Button::new("center").label("居中重置地图").flex_1().on_click(cx.listener(|this, _, _, cx| { this.center_map(); this.v3.dirty(); cx.notify(); }))))
+                .child(div().text_xs().text_color(rgb(MUTED)).child("碰撞说明：采用 HM2 精细高度图 + 大型实体（房屋、巨石、围墙）顶面高度包络计算阻挡，不含门窗镂空或桥底穿洞；勾选树木阻挡时树冠按实心柱体计算；栅栏、路缘与碎石不阻挡炮弹。")))
+            .child(card("操作说明").children(help.map(|(k, v)| div().flex().gap_2().text_xs().child(div().w(px(76.)).font_weight(FontWeight::BOLD).child(k)).child(div().flex_1().text_color(rgb(MUTED)).child(v)))))
     }
 
     fn legend(&self) -> Option<Vec<(Option<u32>, &'static str)>> {
         let (ov, _) = self.overlay.as_ref()?;
         Some(match ov.kind {
-            SweepKind::Reach => vec![(Some(0x58c472), "target at this spot can be hit from A")],
-            SweepKind::Hit => vec![(None, "Shooter positions for B:"), (Some(0x58c472), "low arc"), (Some(0xe98a3c), "high arc only"), (Some(0x4fb3e8), "both")],
-            SweepKind::View => vec![(None, "Seen from A:"), (Some(0x58c472), "visible"), (Some(0x000000), "hidden · view cut by"), (Some(0xe23c32), "terrain"), (Some(0xf09628), "object"), (Some(0xfae63c), "trees")],
+            SweepKind::Reach => vec![(Some(0x58c472), "A 点火力可命中该位置目标")],
+            SweepKind::Hit => vec![(None, "可打击目标 B 的阵地："), (Some(0x58c472), "低伸直射"), (Some(0xe98a3c), "仅高抛曲射"), (Some(0x4fb3e8), "直射/曲射皆可")],
+            SweepKind::View => vec![(None, "A 点视野："), (Some(0x58c472), "通视可见"), (Some(0x000000), "视野盲区 · 遮挡物："), (Some(0xe23c32), "地形山体"), (Some(0xf09628), "建筑/岩石"), (Some(0xfae63c), "树木/灌木")],
         })
     }
 }
@@ -1026,12 +1083,12 @@ impl Render for Viewer {
                     .on_mouse_up(MouseButton::Right, cx.listener(Self::mouse_up))
                     .on_scroll(cx.listener(Self::wheel))
                     .child(map_canvas)
-                    .when(!self.hud.is_empty(), |d| d.child(glass().top_2().left_2().font_family("Consolas").child(self.hud.clone())))
+                    .when(!self.hud.is_empty(), |d| d.child(glass().top_2().left_2().font_family("Microsoft YaHei UI").child(self.hud.clone())))
                     .when(!self.status.0.is_empty(), |d| d.child(glass().top_2().right_2().when(self.status.1, |d| d.text_color(rgb(0xff8a80))).child(self.status.0.clone())))
                     .child(div().absolute().top_2().w_full().flex().justify_center().child(
                         div().id("btn-red").px_3().py_1().rounded_md().text_xs().font_weight(FontWeight::BOLD).cursor_pointer()
                             .bg(if border_on { color(0x8c1414, 0.9) } else { color(0x0c0e10, 0.82) }).border_1().border_color(rgb(if border_on { 0xe2574c } else { BORDER }))
-                            .child(format!("Map border: {} (R)", if border_on { "ON" } else { "OFF" }))
+                            .child(format!("战场边界：{} (R)", if border_on { "开启" } else { "关闭" }))
                             .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
                             .on_click(cx.listener(|this, _, _, cx| { let on = !this.sw.on(Sw::Border); this.toggle(Sw::Border, on, cx); }))))
                     .when_some(legend, |d, items| d.child(glass().bottom_2().right_2().flex().items_center().gap_1().children(items.into_iter().map(|(c, t)| {

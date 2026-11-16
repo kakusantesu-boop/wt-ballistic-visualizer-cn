@@ -16,6 +16,20 @@ rust/shots/
 # Local notes
 /WT_BALLISTIC_VISUALIZER.md
 
-# Web version (kept locally, not published)
+# Upstream datamine cache & raw CSVs (patched localized JS in i18n_src/patched_js/ is tracked)
+/i18n_src/wt-datamine/
+/i18n_src/*.csv
+
+# Web runtime unpacked map assets, SQLite databases, and bootstrap credentials (never commit)
+/web/data/
+/web/var/
+*.db
+*.db-shm
+*.db-wal
+*bootstrap-admin*.json
+*.pack
+*.wtvpack
+
+# Legacy root web files
 /index.html
 /tests/

@@ -89,7 +89,7 @@ pub fn text(window: &mut Window, cx: &mut App, s: &str, at: Point<Pixels>, col: 
 pub fn mono(window: &mut Window, cx: &mut App, s: &str, at: Point<Pixels>, col: Hsla, size: f32) {
     let mut run = window.text_style().to_run(s.len());
     run.color = col;
-    run.font.family = "Consolas".into();
+    run.font.family = "Microsoft YaHei UI".into();
     let line = window.text_system().shape_line(s.to_string().into(), px(size), &[run], None);
     line.paint(at, px(size * 1.25), TextAlign::Left, None, window, cx).ok();
 }

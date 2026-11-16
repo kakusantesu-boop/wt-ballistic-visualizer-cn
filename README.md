@@ -1,68 +1,71 @@
-# WT Ballistic Visualizer
+# 婴儿弹道计算机（基于 WT Ballistic Visualizer 全中文汉化与全载具扩展版）
 
-An offline map and ballistics tool for War Thunder ground battles. Place your tank and a target on any tank map, and it shows whether and how your shell gets there: the gun elevation, the hold over the target, and the shell's path in 2D, in 3D and through a gunner's sight. It also shows each mission's map border and red zones.
+用于《战争雷霆》（War Thunder）陆战的**离线三维精细地图与弹道解算工具**。在任意陆战地图上放置己方战车（A 点）和目标（B 点），即可直观查看炮弹能否命中以及如何命中：火炮仰角、密位抬高量、瞄准提前高，以及在 **2D 俯视图、3D 自由视角、3D 炮口视角和 3D 炮长瞄准镜**下的完整飞行轨迹，并显示每个任务模式的战场边界与红区禁区。
 
-## Download
+> **全载具词库与火箭弹物理说明**：本仓库已直接从 GitHub 战雷拆包仓库（`gszabi99/War-Thunder-Datamine`）完整导入全部 **1,288 辆有武装地面载具、1,422 门火炮/发射器、5,317 种弹药（含火箭弹、臼炮弹、榴弹与导弹）**，以及 **56 张陆战地图、463 个任务布局**的简体中文汉化；并为多管火箭炮与火箭助推臼炮（如 **BM-31-12“安德柳沙”、BM-13N“喀秋莎”、BM-8-24、380mm 突击虎、75 式自行火箭炮、管风琴、RBT-5、丘吉尔 AVRE** 等）补齐了两级固体火箭发动机推力、燃耗减重与导轨离轨段弹道物理解算。专有名词严格对齐拆包本地化词库与战争雷霆官方中文 Wiki，支持中英文、外号（如搜 `安德柳沙`、`喀秋莎`、`突击虎`）与内部 ID 搜索。
 
-Get `WT-Ballistic-Visualizer-Lite.exe` from [Releases](../../releases/latest) and run it (64-bit Windows 10 or 11). It's one file with all map and tank data inside, so you don't need the game or anything else installed.
+## 直接运行与分发（单文件免安装版）
 
-Windows may say "Windows protected your PC" because the file is not signed: click **More info**, then **Run anyway**.
+- **本地直接运行**：双击 [`dist/婴儿弹道计算机/婴儿弹道计算机.exe`](./dist/婴儿弹道计算机/婴儿弹道计算机.exe)（适用于 64 位 Windows 10 / 11，静态编译免 VC++ 运行库，内置全部地图与载具数据，无需启动或安装游戏）。
+- **发给别人使用**：直接发送上层目录生成的压缩包 `../婴儿弹道计算机.zip`（内含 `婴儿弹道计算机.exe` 与 `使用说明.txt`，对方解压后双击即可运行）。
 
-## Using it
+若 Windows 弹出“Windows 已保护你的电脑”（因本地自编译程序未购买商业数字签名），点击**更多信息** → **仍要运行**即可。
 
-1. Pick a **Level**, **Tank** and **Shell** in the sidebar. The level and tank lists can be searched by typing.
-2. **Left click** the map to place your tank at **A**, and **right click** to place the target at **B**.
-3. The **Aim A → B** card shows:
-   - the distance, and whether the sight line is clear;
-   - for the low and high arc: whether it hits, the gun elevation, how far to aim over B, the flight time and the impact speed.
-4. Change **View** to see the shot:
-   - **2D map:** the map from above.
-   - **3D orbit:** drag to rotate, right drag to pan, wheel to zoom, double click to centre.
-   - **3D aim:** looks from A's gun at B.
-   - **3D gunner sight:** the same view through a sight, with a mil scale and range marks for your shell. Mouse wheel = magnification.
+## 使用方法
 
-| Key | Action |
+1. 在左侧栏选择**作战地图**、**载具型号**和**选用弹药**。下拉框支持直接输入中文、英文或型号拼音/缩写实时筛选（例如搜 `废弃工厂`、`factory`、`99a`、`豹2a4`、`2s38`、`HE`、`APFSDS` 均可）。
+2. 在地图上点击**鼠标左键**放置己方战车 **A**，点击**鼠标右键**放置目标 **B**。
+3. **弹道解算 A → B** 面板会实时显示：
+   - 水平距离、直线斜距、海拔高差、方位角，以及视线是否被地形/建筑/树冠遮挡；
+   - **低伸弹道（直射）**与**高抛弹道（曲射）**两组可行解：能否命中、火炮仰角（角度与密位）、高于目标 B 的瞄准抬高量、飞行时间与落点存速。
+4. 切换**观察视角**查看实景弹道：
+   - **2D 俯视地图**：高程阴影与地表俯视图，底部同步显示 A → B 沿线地形与弹道高低剖面图。
+   - **3D 自由环绕**：左键拖动旋转，右键（或按住 Shift）拖动平移，滚轮缩放，左键双击任意地面居中。
+   - **3D 炮口视角（A → B）**：从 A 点炮口直接望向 B 点，标出密位抬高十字。
+   - **3D 炮长瞄准镜**：带密位横标尺与当前弹药距离刻度的炮长镜视角，鼠标滚轮调节瞄准镜倍率（1×–24×）。
+
+| 按键 | 功能 |
 |---|---|
-| W / S (or ↑ / ↓) | drive A's tank forward / back |
-| A / D (or ← / →) | steer A's tank |
-| R | map border on / off |
-| / | search levels |
+| `W` / `S`（或 `↑` / `↓`） | 驾驶 A 点战车前进 / 倒车 |
+| `A` / `D`（或 `←` / `→`） | 控制 A 点战车左右转向 |
+| `R` | 开启 / 关闭战场边界显示 |
+| `/` | 快速聚焦地图搜索框 |
 
-Keys work after you click the map. The tank follows the slope of the ground, and A and B stand on top of rocks and objects.
+*提示：先在地图区域点击一下获得焦点后即可使用键盘驾驶。车体俯仰与横滚会自动贴合地面坡度，且 A、B 两点均可站立在岩石与掩体顶部。*
 
-**More tools:**
-- **Find highest point:** the highest ground inside the battle area that isn't in a red zone.
-- **Reach from A:** everywhere a target can be hit from A.
-- **Hit target B:** everywhere you could shoot B from. Green means the low arc works, orange means only the high arc does, blue means both.
-- **Visibility from A:** what A can see, and what blocks the view.
-- **Layers:** switch the map border, red zones, capture zones, water, grid, objects, trees and tank models on or off. You can also choose whether trees block sight and shots.
-- **Choose red zones** (under the Red zones switch) lists every red zone of the selected mission, with the team it applies to. Each zone has a number, shown in a badge on the map (2D and 3D) and in front of its entry in the list, so you can match them. Zones that are off keep a grey badge. Turn single zones off, or all of them with **All off**. A zone that's off is hidden and no longer counts for **Find highest point** and **Hit target B**. The list resets when you change map.
-- **Game mode and mission:** zones differ per mode (Arcade, Realistic, Simulator) and per mission.
+**进阶战术分析工具：**
+- **寻找最高点**：一键标出当前任务作战区域内、且不在红区禁区内的最高地面点位。
+- **A 点火力覆盖**：扫描全图所有能被 A 点当前弹药命中的区域。
+- **可打到 B 的阵地**：反推全图所有能打中目标 B 的开火阵地——**绿色**代表低伸直射可达，**橙色**代表仅高抛曲射（跨山吊射）可达，**蓝色**代表直射与曲射皆可。
+- **A 点视野通视分析**：显示从 A 点能看到的通视区域，并按颜色标出遮挡视线的障碍类型（地形山体 / 建筑岩石 / 树木灌木）。
+- **选择禁区红区**（在“禁区红区”开关下方展开）：列出当前任务与游戏模式下的全部禁区及所属阵营（1 队 / 2 队 / 双方），与地图上的圆圈编号一一对应。可单独关闭某块红区或一键**全部关闭**；关闭后的红区不再参与“寻找最高点”与“可打到 B 的阵地”排除计算。
+- **游戏模式与任务布局**：切换**街机娱乐 / 历史性能 / 全真模拟**或不同战区任务（战区控制、战区争夺、战区攻陷等）时，战场边界与红区会自动按游戏真实配置切换。
 
-## Good to know
+## 注意事项与已知边界
 
-- **Not checked against the game:** the ballistics have not been compared with in-game shots. There's no wind, no dispersion and no gun jump.
-- **Estimated drag:** shells marked *est. drag* have no drag value in the game files, so they use an estimate, and their drop at long range is approximate.
-- **Objects:** buildings, big rocks and walls block shots as solid blocks up to their top, so windows and gaps don't let anything through. Smaller objects (fences, debris) never block.
-- **Trees** are solid crowns that block sight by default but not shots.
-- **Tank models:** a Leopard 2A4 stands at A for every tank and a T-72A at B. The models are untextured.
-- **Driving** has no physics: the tank goes over walls and up any slope, and its gun points along the hull, not at B.
-- **Range marks:** the gunner sight's marks are worked out for level ground. The aim mark for B is always exact.
-- **After a game patch** maps can change, so use the newest release.
+- **未与游戏实弹逐发校准**：弹道采用质点空气阻力物理模型解算，不含风偏、炮弹散布和炮口跳动，尚未与游戏内实弹落点逐发比对。
+- **估算风阻（估算风阻 / est. drag）**：部分二战老式火炮弹药在战雷数据文件中未显式写出风阻系数 `Cx`（游戏使用内置默认值），工具会取同弹种中位数风阻估算并标注“估算风阻”，远距离落点会有近似偏差。
+- **建筑与岩石碰撞体**：房屋、巨石、围墙按其实体顶面高度包络阻挡炮弹，因此无法穿过门窗、缝隙或桥底空洞；低矮栅栏、路缘与碎石不阻挡炮弹。
+- **树木与灌木**：默认阻挡视线但不引爆/阻挡炮弹；使用破甲弹（HEATFS）或近炸/敏感引信榴弹时可手动勾选“树木与灌木引爆/阻挡炮弹”。
+- **靶车模型**：单文件精简版在 A 点统一显示豹 2A4 白模、B 点显示 T-72A 白模。
+- **瞄准镜距离标尺**：炮长瞄准镜竖向距离刻度基于平地水准射击计算；而针对目标 B 标出的彩色瞄准十字始终包含真实高低差精确解。
 
-## Building from source
+## 本机重新编译、词库重打包与网页版部署
 
-Updating the data needs the game installed, Python 3 with Pillow and numpy, and [wt-unpack](https://github.com/patodois/wt-unpack) (`wt-unpack.exe` in a `wt-unpack*/` folder here). The app needs Rust and Visual Studio 2022.
+```powershell
+# 1. 编译汉化后的 Rust 桌面主程序
+cd rust
+cargo build --release --bin wtv
+cargo test --release
 
+# 2. 基于拆包中文词库重新生成汉化元数据并打包桌面版 EXE + 可分发 ZIP（约 3 秒）
+cd ..
+python extractor/localize_data.py
+python extractor/repack_cn.py
+# 产物输出至 dist/婴儿弹道计算机/婴儿弹道计算机.exe 与 ../婴儿弹道计算机.zip
+
+# 3. 网页版（含账号密码登录、管理员邀请码注册、每用户 30 槽个人云存档）
+python web/extract_web_data.py --src "dist/婴儿弹道计算机/婴儿弹道计算机.exe" --unpack-to web/data
+python web/server.py --host 127.0.0.1 --port 18820
+# 首次初始化会在 web/var/bootstrap-admin.json 生成初始管理员账号密码与邀请码
 ```
-cd extractor
-python extract.py           # maps, missions, tanks and shells into ../data  (--game "<War Thunder folder>")
-python tank_models.py       # tank models from ../tanks/**/<model>.gltf
-
-cd ../rust
-cargo run --release                                                  # run the app on ../data
-cargo test --release                                                 # tests
-cargo build --release && cargo run --release --bin bundle           # dist/WT-Ballistic-Visualizer-Lite.exe
-```
-
-Objects, trees and ground colours need `extractor/objects` built once (`cargo build --release` there, with wt-unpack's source in `wt-unpack-src/`).
