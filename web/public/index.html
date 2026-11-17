@@ -167,6 +167,49 @@
   .tbl th { color:var(--dim); font-weight:600; background:#13181d; position:sticky; top:0; }
   .code-pill { font:12px var(--mono); color:var(--acc2); background:#101418; padding:2px 6px; border-radius:4px; border:1px solid var(--line2); }
 
+  /* Vehicle Category Tabs, Helicopter Controls & 3-Tier Firing Tables */
+  .veh-tabs { display:grid; grid-template-columns:1fr 1.15fr 1.25fr; gap:4px; background:#0d1115; padding:3px; border-radius:7px; border:1px solid var(--line); margin-bottom:8px; }
+  .veh-tabs button { border:none; background:transparent; padding:5px 4px; font-size:11.5px; font-weight:600; color:var(--dim); border-radius:5px; white-space:nowrap; }
+  .veh-tabs button.active { background:var(--card2); color:var(--acc2); box-shadow:0 1px 4px #0007; border:1px solid #82602466; }
+  .heli-box { margin-top:8px; padding:8px 9px; border-radius:7px; background:linear-gradient(180deg,#131b22,#0f1419); border:1px solid #355068; }
+  .heli-box-hd { display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:11.5px; font-weight:700; color:#8fd4ff; margin-bottom:6px; }
+  .ccip-tag { font-size:10.5px; padding:1px 6px; border-radius:4px; font-weight:600; background:#142b1d; border:1px solid #2f6e44; color:#8ce8a4; }
+  .ccip-tag.manual { background:#2d2211; border-color:#7a5820; color:#ffd482; }
+  .pad-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-bottom:6px; }
+  .pad-btn { padding:5px 6px; font-size:11.5px; font-weight:600; display:flex; align-items:center; justify-content:space-between; gap:4px; }
+  .pad-btn.t1 { border-color:#2d5d7c; color:#a8dfff; background:#12222e; }
+  .pad-btn.t1:hover { border-color:#56b8f0; background:#183042; }
+  .pad-btn.t2 { border-color:#7c4a25; color:#ffd0a6; background:#291a10; }
+  .pad-btn.t2:hover { border-color:#f09648; background:#382315; }
+  .pad-btn.act { box-shadow:0 0 0 2px var(--acc2) inset; }
+  .pad-btn small { font:10.5px var(--mono); opacity:.82; }
+  .chip-row { display:flex; flex-wrap:wrap; gap:4px; margin-top:5px; }
+  .chip { padding:2px 7px; font:11px var(--mono); border-radius:4px; background:#161d24; border:1px solid var(--line2); color:var(--dim); cursor:pointer; }
+  .chip:hover { border-color:var(--acc); color:var(--acc2); }
+  .heli-slider { width:100%; accent-color:var(--acc); margin:5px 0 2px; cursor:pointer; }
+
+  .hud-pair { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-bottom:7px; }
+  .hud-metric { background:#0b1014; border:1px solid #2e3d4a; border-radius:7px; padding:7px 9px; text-align:center; }
+  .hud-metric.pitch { border-color:#6e521e; background:#14110b; }
+  .hud-lbl { font-size:11px; color:var(--dim); display:block; margin-bottom:2px; }
+  .hud-val { font:800 21px/1.15 var(--mono); color:#8fd4ff; letter-spacing:.01em; }
+  .hud-metric.pitch .hud-val { color:var(--acc2); }
+  .hud-sub { font:11px var(--mono); color:var(--dim); margin-top:3px; display:block; }
+  .heli-meta { font:11.5px/1.55 var(--mono); background:#0c1013; border:1px solid var(--line); border-radius:6px; padding:7px 8px; }
+  .ftbl-wrap { margin-top:9px; border:1px solid var(--line); border-radius:6px; background:#0c1014; overflow:hidden; }
+  .ftbl-hd { display:flex; align-items:center; justify-content:space-between; gap:6px; padding:6px 8px; background:#141b22; border-bottom:1px solid var(--line); font-size:11.5px; font-weight:700; color:#cde3f5; }
+  .ftbl { width:100%; border-collapse:collapse; font:11px var(--mono); }
+  .ftbl th, .ftbl td { padding:4px 4px; border-bottom:1px solid #ffffff09; text-align:right; white-space:nowrap; }
+  .ftbl th:first-child, .ftbl td:first-child { text-align:left; font-family:var(--font); max-width:96px; overflow:hidden; text-overflow:ellipsis; position:sticky; left:0; background:#0c1014; z-index:1; }
+  .ftbl th { color:var(--dim); font-weight:600; background:#10161c; font-family:var(--font); font-size:10.5px; }
+  .ftbl th:first-child { background:#10161c; z-index:2; }
+  .ftbl tr.clickable { cursor:pointer; transition:background .1s; }
+  .ftbl tr.clickable:hover, .ftbl tr.clickable:hover td:first-child { background:#1a2530; }
+  .ftbl tr.cur-row, .ftbl tr.cur-row td:first-child { background:#2a2111; }
+  .ftbl .az-col { color:#8fd4ff; font-weight:700; }
+  .ftbl .el-col { color:var(--acc2); font-weight:700; }
+  .pin-del { border:none; background:transparent; color:var(--bad); padding:0 3px; font-size:12px; margin-left:3px; }
+
   /* Mobile Overlay, Floating Firing Solution HUD, Virtual D-Pad & Bottom Dock */
   #sideBackdrop { display:none; }
   #mobAimCard { display:none; }
@@ -317,31 +360,113 @@
     </div>
   </section>
 
-  <!-- 3. Gun & Ammunition -->
+  <!-- 3. Vehicle, Helicopter & Ammunition -->
   <section class="card">
-    <h2><span class="h2-left">火炮与弹药</span></h2>
-    <label for="tankFind">载具型号（1,288 辆陆战载具，支持中文/外号/型号）</label>
+    <h2><span class="h2-left">载具与弹药</span></h2>
+    <div class="veh-tabs" id="vehTabs" role="tablist" aria-label="载具类别筛选">
+      <button type="button" data-vcat="all" class="active">全部载具</button>
+      <button type="button" data-vcat="ground">地面载具</button>
+      <button type="button" data-vcat="heli">武装直升机</button>
+    </div>
+    <label for="tankFind" id="tankFindLbl">载具型号（陆战 + 武直全收录，支持中文/外号/型号）</label>
     <div class="combo">
-      <input type="search" id="tankFind" placeholder="搜索如：安德柳沙、bm31、喀秋莎、突击虎、99a…" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="tankListUl">
+      <input type="search" id="tankFind" placeholder="搜索如：卡52、米24、直10、阿帕奇、安德柳沙、99a…" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="tankListUl">
       <ul id="tankListUl" role="listbox" hidden></ul>
     </div>
-    <label for="shellSel">选用弹药</label>
+    <label for="shellSel">选用弹药 / 火箭巢</label>
     <select id="shellSel"></select>
+
+    <!-- Helicopter Spawn & Flight Altitude Controls -->
+    <div id="heliBox" class="heli-box" hidden>
+      <div class="heli-box-hd">
+        <span>直升机出生点与悬停高度</span>
+        <span id="heliCcipTag" class="ccip-tag">CCIP</span>
+      </div>
+      <label style="margin-top:0">一键吸附本图停机坪（或直接在地图内外任意点击放 A）</label>
+      <div class="pad-grid" id="heliPadGrid">
+        <button type="button" class="pad-btn t1" data-pad="t1_near"><span>1队近 H1</span><small id="padAlt_t1_near">—</small></button>
+        <button type="button" class="pad-btn t1" data-pad="t1_far"><span>1队远 H2</span><small id="padAlt_t1_far">—</small></button>
+        <button type="button" class="pad-btn t2" data-pad="t2_near"><span>2队近 H1</span><small id="padAlt_t2_near">—</small></button>
+        <button type="button" class="pad-btn t2" data-pad="t2_far"><span>2队远 H2</span><small id="padAlt_t2_far">—</small></button>
+      </div>
+      <div class="row" style="margin-bottom:4px">
+        <button type="button" class="btn-xs" id="btnFitAirspace" title="缩放视野以同时显示全部停机坪与中央陆战战区">全空域总览</button>
+        <button type="button" class="btn-xs" id="btnFitBattle" title="放大回中央陆战坦克交战区">放大陆战区</button>
+      </div>
+      <div class="row">
+        <div>
+          <label for="heliAgl">离地高度 AGL (m)</label>
+          <input type="number" id="heliAgl" min="0" max="4000" step="1" value="35">
+        </div>
+        <div>
+          <label for="heliAsl">海拔 ALT / ASL (m)</label>
+          <input type="number" id="heliAsl" min="-100" max="6000" step="1" value="35">
+        </div>
+      </div>
+      <input type="range" id="heliAglSlider" class="heli-slider" min="0" max="600" step="1" value="35">
+      <div class="chip-row" id="aglChips">
+        <button type="button" class="chip" data-agl="2">+2m贴地</button>
+        <button type="button" class="chip" data-agl="15">+15m树梢</button>
+        <button type="button" class="chip" data-agl="35">+35m低空</button>
+        <button type="button" class="chip" data-agl="75">+75m</button>
+        <button type="button" class="chip" data-agl="150">+150m</button>
+        <button type="button" class="chip" data-agl="300">+300m</button>
+      </div>
+      <div class="row" style="margin-top:6px;align-items:end">
+        <div>
+          <label for="heliSpd">机身平飞空速 (km/h)</label>
+          <input type="number" id="heliSpd" min="0" max="450" step="5" value="0">
+        </div>
+        <div class="chip-row" id="spdChips" style="margin:0 0 2px">
+          <button type="button" class="chip" data-spd="0">0悬停</button>
+          <button type="button" class="chip" data-spd="120">120</button>
+          <button type="button" class="chip" data-spd="200">200</button>
+        </div>
+      </div>
+    </div>
+
     <div class="row3">
       <div><label for="pMin">俯角下限 °</label><input type="number" id="pMin" step="0.5" value="-10"></div>
       <div><label for="pMax">仰角上限 °</label><input type="number" id="pMax" step="0.5" value="20"></div>
       <div><label for="range">最大射程 m</label><input type="number" id="range" step="100" value="2500"></div>
     </div>
-    <div class="row">
-      <div><label for="gunH">炮口高度 m</label><input type="number" id="gunH" step="0.1" value="2.0"></div>
+    <div class="row" id="groundGunRow">
+      <div id="gunHWrap"><label for="gunH">炮口高度 m</label><input type="number" id="gunH" step="0.1" value="2.0"></div>
       <div><label for="tgtH">目标高度 m</label><input type="number" id="tgtH" step="0.1" value="1.5"></div>
     </div>
   </section>
 
-  <!-- 4. Aim A -> B -->
-  <section class="card">
-    <h2><span class="h2-left">弹道解算 A → B</span></h2>
+  <!-- 4. Aim A -> B & Helicopter Firing Tables -->
+  <section class="card" id="aimCard">
+    <h2><span class="h2-left" id="aimCardTitle">弹道解算 A → B</span></h2>
     <div id="out">左键放置开火点 A，右键放置目标点 B。</div>
+    <div id="heliOutWrap" hidden>
+      <div id="heliMainHud"></div>
+      <div class="ftbl-wrap" id="heliTacWrap">
+        <div class="ftbl-hd">
+          <span>本局关键点位速查射表（点行切换目标）</span>
+          <button type="button" class="btn-xs primary" id="btnPinB" title="将当前标定点 B 钉入下方射表，方便对比与存档">📌 钉住B点</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="ftbl" id="heliTacTbl">
+            <thead><tr><th>目标点</th><th>方位°</th><th>仰角°</th><th>距离</th><th>飞行</th><th>状态</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="ftbl-wrap">
+        <div class="ftbl-hd" id="btnToggleLadder" style="cursor:pointer" title="点击展开或收起距离阶梯速查表">
+          <span>距离梯度速查射表（当前悬停高度）</span>
+          <span class="note" id="ladderFoldHint">▸ 展开</span>
+        </div>
+        <div id="heliLadderBody" hidden style="max-height:220px;overflow-y:auto">
+          <table class="ftbl" id="heliLadderTbl">
+            <thead><tr><th>水平距离</th><th>仰角°</th><th>密位</th><th>飞行时间</th><th>±0.5°跨度</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
     <label class="chk"><input type="checkbox" id="showArc" checked><span class="txt">3D 显示弹道轨迹<span class="sub">弹道弧线、落差垂幕、顶点与落点存速</span></span></label>
   </section>
 
@@ -400,11 +525,11 @@
   <section class="card">
     <h2><span class="h2-left">操作说明</span></h2>
     <p class="help">
-      <b>电脑键鼠</b><span>左键放 A，右键放 B，滚轮缩放，W A S D 开车</span>
+      <b>电脑键鼠</b><span>左键放 A（武直支持全空域框外放点），右键放 B，滚轮缩放</span>
+      <b>武直微调</b><span>点选停机坪 H1/H2 一键就位，W A S D 平移，Q / E 升降悬停高度</span>
       <b>触屏点选</b><span>底部切换「放A / 放B / 漫游」，任意位置长按直接放 B</span>
       <b>触屏手势</b><span>单指拖动平移/环绕，双指捏合缩放与双指平移</span>
-      <b>虚拟驾驶</b><span>点底部「驾驶」呼出方向键移动 A 点战车</span>
-      <b>3D 拖动</b><span>左键旋转；右键或 Shift+拖动平移；双击居中</span>
+      <b>虚拟驾驶</b><span>点底部「驾驶」呼出方向键与直升机升/降微调键</span>
       <b>快捷键 R / /</b><span>R 开关战场边界，/ 快速搜索作战地图</span>
     </p>
   </section>
@@ -427,9 +552,11 @@
       <div class="mob-aim-bd" id="mobAimBody"></div>
     </div>
     <div id="mobPad" hidden>
-      <span></span>
+      <button type="button" data-dkey="q" id="padAltDown" hidden title="降低悬停高度 (Q)" style="font-size:11.5px">降</button>
+      <span id="padSpacerL"></span>
       <button type="button" data-dkey="w" aria-label="前进">▲</button>
-      <span></span>
+      <button type="button" data-dkey="e" id="padAltUp" hidden title="升高悬停高度 (E)" style="font-size:11.5px">升</button>
+      <span id="padSpacerR"></span>
       <button type="button" data-dkey="a" aria-label="左转">◄</button>
       <button type="button" data-dkey="s" aria-label="倒车">▼</button>
       <button type="button" data-dkey="d" aria-label="右转">►</button>
@@ -575,22 +702,43 @@ var WT = (function () {
   const G = 9.81;
   const DEG = Math.PI / 180;
 
-  function rho(y) { const f = 1 - 2.25577e-5 * y; return 1.225 * Math.pow(f > 0 ? f : 0, 4.2559); }
+  function rho(y) {
+    const u = 2.25577e-5 * y;
+    if (u >= 1) return 0;
+    if (u > -0.25 && u < 0.35) {
+      const f = 1 - u, f2 = f * f;
+      return 1.225 * (f2 * f2) * (1 - u * (0.2559 + u * (0.095208 + u * 0.05535)));
+    }
+    return 1.225 * Math.pow(1 - u, 4.2559);
+  }
+  function soundSpeed(y) { return Math.sqrt(1.4 * 287.05 * Math.max(216.65, 288.15 - 0.0065 * y)); }
+  function rocketCd0(mach) {
+    if (mach <= 0.80) return 0.29;
+    if (mach <= 1.10) {
+      const t = (mach - 0.80) / 0.30;
+      return 0.29 + 0.39 * (t * t * (3 - 2 * t));
+    }
+    return 0.26 + 0.42 / (1 + 0.55 * (mach - 1.10));
+  }
   function dragK(sh) { return 0.5 * sh.cx * Math.PI * sh.cal * sh.cal / 4 / sh.m; }
 
   function simulate(sh, elev, y0, maxS, opt) {
     opt = opt || {};
     const dt = opt.dt || 0.004, maxT = opt.maxT || 60, yFloor = opt.yFloor != null ? opt.yFloor : y0 - 3000;
+    const vAir = opt.vAir || 0;
     const rm = sh.rocket;
     if (rm && rm.force0 > 0 && rm.tFire0 > 0) {
       const dirX = Math.cos(elev), dirY = Math.sin(elev);
-      const cDrag = 0.5 * sh.cx * Math.PI * sh.cal * sh.cal / 4;
+      const area = Math.PI * sh.cal * sh.cal / 4;
       const t0Start = Math.max(0, rm.tDelay || 0);
       const t0End = t0Start + rm.tFire0;
       const t1Fire = Math.max(0, rm.tFire1 || 0);
       const t1End = t0End + t1Fire;
       const m0End = rm.mEnd0 > 0 ? rm.mEnd0 : sh.m;
       const m1End = t1Fire > 0 && rm.mEnd1 > 0 ? rm.mEnd1 : m0End;
+      const tLife = rm.tLife > 0 ? rm.tLife : 0;
+      const maxD = rm.maxDist > 0 ? rm.maxDist : (sh.maxDist > 0 ? sh.maxDist : 0);
+      const useMach = !!rm.cxMach;
       const stageAt = tt => {
         if (tt < t0Start) return [sh.m, 0];
         if (tt < t0End) return [sh.m + (m0End - sh.m) * ((tt - t0Start) / rm.tFire0), rm.force0];
@@ -598,34 +746,64 @@ var WT = (function () {
         return [m1End, 0];
       };
       const vStart = Math.max(0, rm.vStart || 0);
-      const accel = (sc, yc, vxc, vyc, tt) => {
+      let s = 0, y = y0, t = 0, theta = elev, uTube = vStart;
+      let vx = vAir + vStart * dirX, vy = vStart * dirY;
+      let onRail = vStart < 5;
+      let railDist = 0;
+      let selfDestruct = null;
+      const S = [0], Y = [y0], T = [0], V = [Math.hypot(vx, vy)];
+      const accelFree = (yc, vxc, vyc, th, tt) => {
         const [mass, thrust] = stageAt(tt);
         const spd = Math.hypot(vxc, vyc);
-        const ux = spd > 1e-3 ? vxc / spd : dirX, uy = spd > 1e-3 ? vyc / spd : dirY;
-        const fDrag = cDrag * rho(yc) * spd * spd;
-        const aAxial = (thrust - fDrag) / Math.max(1e-3, mass);
-        if (vStart < 5 && Math.hypot(sc, yc - y0) < 2.5 && thrust > 0) {
-          const aRail = Math.max(0, aAxial - G * dirY);
-          return [aRail * dirX, aRail * dirY];
-        }
-        return [aAxial * ux, aAxial * uy - G];
+        const ux = spd > 1e-3 ? vxc / spd : Math.cos(th), uy = spd > 1e-3 ? vyc / spd : Math.sin(th);
+        const cd = useMach ? sh.cx * rocketCd0(spd / soundSpeed(yc)) : sh.cx;
+        const aDrag = (0.5 * cd * area * rho(yc) * spd * spd) / Math.max(1e-3, mass);
+        const aThrust = thrust / Math.max(1e-3, mass);
+        return [aThrust * Math.cos(th) - aDrag * ux, aThrust * Math.sin(th) - aDrag * uy - G];
       };
-      let s = 0, y = y0, t = 0, vx = vStart * dirX, vy = vStart * dirY;
-      const S = [0], Y = [y0], T = [0], V = [vStart];
       while (s < maxS && t < maxT && y > yFloor) {
-        const [ax1, ay1] = accel(s, y, vx, vy, t);
+        if (tLife > 0 && t >= tLife) { selfDestruct = "time"; break; }
+        if (maxD > 0 && Math.hypot(s, y - y0) >= maxD) { selfDestruct = "dist"; break; }
+        if (onRail) {
+          const [mass, thrust] = stageAt(t);
+          if (thrust > 0 && railDist < 2.0) {
+            const spd = Math.hypot(vx, vy);
+            const cd = useMach ? sh.cx * rocketCd0(spd / soundSpeed(y)) : sh.cx;
+            const fDrag = 0.5 * cd * area * rho(y) * spd * spd;
+            const aTube = Math.max(0, (thrust - fDrag) / Math.max(1e-3, mass) - G * dirY);
+            const uNext = uTube + aTube * dt;
+            const uMid = 0.5 * (uTube + uNext);
+            railDist += uMid * dt;
+            uTube = uNext;
+            s += (vAir + uMid * dirX) * dt;
+            y += (uMid * dirY) * dt;
+            vx = vAir + uTube * dirX;
+            vy = uTube * dirY;
+            t += dt;
+            S.push(s); Y.push(y); T.push(t); V.push(Math.hypot(vx, vy));
+            continue;
+          }
+          onRail = false;
+        }
+        const spdNow = Math.hypot(vx, vy);
+        const thNext = spdNow > 0.5 ? theta + (Math.atan2(vy, vx) - theta) * Math.min(1, 0.0025 * spdNow * dt) : theta;
+        const [ax1, ay1] = accelFree(y, vx, vy, theta, t);
         const vx2 = vx + ax1 * dt, vy2 = vy + ay1 * dt;
-        const [ax2, ay2] = accel(s + vx * dt, y + vy * dt, vx2, vy2, t + dt);
+        const [ax2, ay2] = accelFree(y + vy * dt, vx2, vy2, thNext, t + dt);
         s += 0.5 * (vx + vx2) * dt; y += 0.5 * (vy + vy2) * dt;
-        vx += 0.5 * (ax1 + ax2) * dt; vy += 0.5 * (ay1 + ay2) * dt; t += dt;
+        vx += 0.5 * (ax1 + ax2) * dt; vy += 0.5 * (ay1 + ay2) * dt;
+        theta = thNext; t += dt;
         S.push(s); Y.push(y); T.push(t); V.push(Math.hypot(vx, vy));
       }
-      return { s: S, y: Y, t: T, v: V };
+      return { s: S, y: Y, t: T, v: V, selfDestruct };
     }
     const k = dragK(sh);
-    let s = 0, y = y0, vx = sh.v0 * Math.cos(elev), vy = sh.v0 * Math.sin(elev), t = 0;
-    const S = [0], Y = [y0], T = [0], V = [sh.v0];
+    let s = 0, y = y0, vx = vAir + sh.v0 * Math.cos(elev), vy = sh.v0 * Math.sin(elev), t = 0;
+    const S = [0], Y = [y0], T = [0], V = [Math.hypot(vx, vy)];
+    const maxD = sh.maxDist > 0 ? sh.maxDist : 0;
+    let selfDestruct = null;
     while (s < maxS && t < maxT && y > yFloor) {
+      if (maxD > 0 && Math.hypot(s, y - y0) >= maxD) { selfDestruct = "dist"; break; }
       const c1 = k * rho(y) * Math.hypot(vx, vy);
       const ax1 = -c1 * vx, ay1 = -G - c1 * vy;
       const vx2 = vx + ax1 * dt, vy2 = vy + ay1 * dt;
@@ -635,7 +813,7 @@ var WT = (function () {
       vx += 0.5 * (ax1 + ax2) * dt; vy += 0.5 * (ay1 + ay2) * dt; t += dt;
       S.push(s); Y.push(y); T.push(t); V.push(Math.hypot(vx, vy));
     }
-    return { s: S, y: Y, t: T, v: V };
+    return { s: S, y: Y, t: T, v: V, selfDestruct };
   }
 
   function idxAt(S, d) {
@@ -651,28 +829,380 @@ var WT = (function () {
     return tr[key][p] + (tr[key][q] - tr[key][p]) * w;
   }
 
-  function solveExact(sh, d, dy, y0, pMinDeg, pMaxDeg) {
-    const f = e => { const tr = simulate(sh, e, y0, d + 1, { yFloor: y0 + Math.min(dy, 0) - 500 }); return atDist(tr, "y", d) - y0 - dy; };
-    const N = Math.max(8, Math.ceil((pMaxDeg - pMinDeg) / 0.25));
-    const sols = [];
-    let pe = pMinDeg * DEG, pv = f(pe);
-    for (let i = 1; i <= N; i++) {
-      const e = (pMinDeg + (pMaxDeg - pMinDeg) * i / N) * DEG, v = f(e);
-      if (isFinite(pv) && isFinite(v) && (pv <= 0) !== (v <= 0)) {
-        let lo = pe, hi = e, flo = pv;
-        for (let it = 0; it < 48; it++) {
-          const mid = 0.5 * (lo + hi), fm = f(mid);
-          if (!isFinite(fm)) { hi = mid; continue; }
-          if ((fm <= 0) === (flo <= 0)) { lo = mid; flo = fm; } else hi = mid;
+  // Zero-allocation point-mass flight to horizontal distance d: returns [yAtD, tAtD] or [NaN, NaN].
+  function simAtDist(sh, elev, y0, d, yFloor, vAir) {
+    if (d <= 0) return [y0, 0];
+    const dt = 0.004, maxT = 60;
+    const rm = sh.rocket;
+    if (rm && rm.force0 > 0 && rm.tFire0 > 0) {
+      const dirX = Math.cos(elev), dirY = Math.sin(elev);
+      const area = Math.PI * sh.cal * sh.cal / 4;
+      const t0Start = Math.max(0, rm.tDelay || 0);
+      const t0End = t0Start + rm.tFire0;
+      const t1Fire = Math.max(0, rm.tFire1 || 0);
+      const t1End = t0End + t1Fire;
+      const m0End = rm.mEnd0 > 0 ? rm.mEnd0 : sh.m;
+      const m1End = t1Fire > 0 && rm.mEnd1 > 0 ? rm.mEnd1 : m0End;
+      const tLife = rm.tLife > 0 ? rm.tLife : 0;
+      const maxD = rm.maxDist > 0 ? rm.maxDist : (sh.maxDist > 0 ? sh.maxDist : 0);
+      const useMach = !!rm.cxMach;
+      const stageAt = tt => {
+        if (tt < t0Start) return [sh.m, 0];
+        if (tt < t0End) return [sh.m + (m0End - sh.m) * ((tt - t0Start) / rm.tFire0), rm.force0];
+        if (t1Fire > 0 && tt < t1End) return [m0End + (m1End - m0End) * ((tt - t0End) / t1Fire), rm.force1 || 0];
+        return [m1End, 0];
+      };
+      const accelFree = (yc, vxc, vyc, th, tt) => {
+        const [mass, thrust] = stageAt(tt);
+        const spd = Math.hypot(vxc, vyc);
+        const ux = spd > 1e-3 ? vxc / spd : Math.cos(th), uy = spd > 1e-3 ? vyc / spd : Math.sin(th);
+        const cd = useMach ? sh.cx * rocketCd0(spd / soundSpeed(yc)) : sh.cx;
+        const aDrag = (0.5 * cd * area * rho(yc) * spd * spd) / Math.max(1e-3, mass);
+        const aThrust = thrust / Math.max(1e-3, mass);
+        return [aThrust * Math.cos(th) - aDrag * ux, aThrust * Math.sin(th) - aDrag * uy - G];
+      };
+      const vStart = Math.max(0, rm.vStart || 0);
+      let s = 0, y = y0, t = 0, theta = elev, uTube = vStart;
+      let vx = vAir + vStart * dirX, vy = vStart * dirY;
+      let onRail = vStart < 5, railDist = 0;
+      while (t < maxT && y > yFloor) {
+        if (tLife > 0 && t >= tLife) return [NaN, NaN];
+        if (maxD > 0 && Math.hypot(s, y - y0) >= maxD) return [NaN, NaN];
+        const sp = s, yp = y, tp = t;
+        if (onRail) {
+          const [mass, thrust] = stageAt(t);
+          if (thrust > 0 && railDist < 2.0) {
+            const spd = Math.hypot(vx, vy);
+            const cd = useMach ? sh.cx * rocketCd0(spd / soundSpeed(y)) : sh.cx;
+            const fDrag = 0.5 * cd * area * rho(y) * spd * spd;
+            const aTube = Math.max(0, (thrust - fDrag) / Math.max(1e-3, mass) - G * dirY);
+            const uNext = uTube + aTube * dt, uMid = 0.5 * (uTube + uNext);
+            railDist += uMid * dt; uTube = uNext;
+            s += (vAir + uMid * dirX) * dt; y += uMid * dirY * dt;
+            vx = vAir + uTube * dirX; vy = uTube * dirY; t += dt;
+            if (s >= d) { const w = s > sp ? (d - sp) / (s - sp) : 0; return [yp + (y - yp) * w, tp + (t - tp) * w]; }
+            continue;
+          }
+          onRail = false;
         }
-        sols.push(0.5 * (lo + hi));
+        const spdNow = Math.hypot(vx, vy);
+        const thNext = spdNow > 0.5 ? theta + (Math.atan2(vy, vx) - theta) * Math.min(1, 0.0025 * spdNow * dt) : theta;
+        const [ax1, ay1] = accelFree(y, vx, vy, theta, t);
+        const vx2 = vx + ax1 * dt, vy2 = vy + ay1 * dt;
+        const [ax2, ay2] = accelFree(y + vy * dt, vx2, vy2, thNext, t + dt);
+        s += 0.5 * (vx + vx2) * dt; y += 0.5 * (vy + vy2) * dt;
+        vx += 0.5 * (ax1 + ax2) * dt; vy += 0.5 * (ay1 + ay2) * dt;
+        theta = thNext; t += dt;
+        if (s >= d) {
+          const w = s > sp ? (d - sp) / (s - sp) : 0;
+          const yd = yp + (y - yp) * w, td = tp + (t - tp) * w;
+          if ((tLife > 0 && td > tLife) || (maxD > 0 && Math.hypot(d, yd - y0) > maxD)) return [NaN, NaN];
+          return [yd, td];
+        }
+        if (vx < -1 && s < sp) return [NaN, NaN];
       }
-      pe = e; pv = v;
+      return [NaN, NaN];
+    }
+    const k = dragK(sh), maxD = sh.maxDist > 0 ? sh.maxDist : 0;
+    let s = 0, y = y0, t = 0, vx = vAir + sh.v0 * Math.cos(elev), vy = sh.v0 * Math.sin(elev);
+    if (vx <= 0) return [NaN, NaN];
+    while (t < maxT && y > yFloor) {
+      if (maxD > 0 && Math.hypot(s, y - y0) >= maxD) return [NaN, NaN];
+      const sp = s, yp = y, tp = t;
+      const c1 = k * rho(y) * Math.hypot(vx, vy);
+      const ax1 = -c1 * vx, ay1 = -G - c1 * vy;
+      const vx2 = vx + ax1 * dt, vy2 = vy + ay1 * dt;
+      const c2 = k * rho(y + vy * dt) * Math.hypot(vx2, vy2);
+      const ax2 = -c2 * vx2, ay2 = -G - c2 * vy2;
+      s += 0.5 * (vx + vx2) * dt; y += 0.5 * (vy + vy2) * dt;
+      vx += 0.5 * (ax1 + ax2) * dt; vy += 0.5 * (ay1 + ay2) * dt; t += dt;
+      if (s >= d) {
+        const w = s > sp ? (d - sp) / (s - sp) : 0;
+        const yd = yp + (y - yp) * w, td = tp + (t - tp) * w;
+        if (maxD > 0 && Math.hypot(d, yd - y0) > maxD) return [NaN, NaN];
+        return [yd, td];
+      }
+    }
+    return [NaN, NaN];
+  }
+
+  function solveExact(sh, d, dy, y0, pMinDeg, pMaxDeg, opt) {
+    if (d <= 0.5) return [];
+    const vAir = opt && opt.vAir ? opt.vAir : 0;
+    const yFloor = y0 + Math.min(dy, 0) - 260;
+    const fan = buildTrajFan(sh, y0, pMinDeg, pMaxDeg, vAir, d + 40, yFloor);
+    const coarse = fan.solve(sh, d, dy);
+    const f = e => simAtDist(sh, e, y0, d, yFloor - 200, vAir)[0] - y0 - dy;
+    const sols = [], margin = 0.6 * DEG;
+    for (let c = 0; c < coarse.length; c++) {
+      const eEst = coarse[c][0];
+      const lo0 = Math.max(pMinDeg * DEG, eEst - margin), hi0 = Math.min(pMaxDeg * DEG, eEst + margin);
+      let pe = lo0, pv = f(lo0), refined = null;
+      for (let step = 1; step <= 6; step++) {
+        const e = lo0 + (hi0 - lo0) * step / 6, v = f(e);
+        if (isFinite(pv) && isFinite(v) && (pv <= 0) !== (v <= 0)) {
+          let lo = pe, hi = e, flo = pv;
+          for (let it = 0; it < 20; it++) {
+            const mid = 0.5 * (lo + hi), fm = f(mid);
+            if (!isFinite(fm)) { hi = mid; continue; }
+            if ((fm <= 0) === (flo <= 0)) { lo = mid; flo = fm; } else hi = mid;
+          }
+          const root = 0.5 * (lo + hi);
+          if (isFinite(f(root))) { refined = root; break; }
+        }
+        pe = e; pv = v;
+      }
+      if (refined != null) {
+        if (!sols.length || Math.abs(refined - sols[sols.length - 1]) > 1e-3) sols.push(refined);
+      } else {
+        const fe = f(eEst);
+        if (isFinite(fe) && Math.abs(fe) < 2.5) sols.push(eEst);
+      }
     }
     return sols;
   }
 
-  function buildTable(sh, pMinDeg, pMaxDeg, stepDeg, yAlt, yFloorAbs, maxS, ds) {
+  // Pre-computed zero-alloc elevation fan: solves 30+ targets, range ladders, envelopes and sight reticles in ~1.5 ms total!
+  function buildTrajFan(sh, y0, pMinDeg, pMaxDeg, vAir, maxS, yFloor) {
+    vAir = vAir || 0;
+    maxS = maxS || 16000;
+    yFloor = yFloor != null ? yFloor : y0 - 1500;
+    const stepDeg = 0.5;
+    const ne = Math.max(2, Math.ceil((pMaxDeg - pMinDeg) / stepDeg) + 1);
+    const ds = 20;
+    const n = Math.ceil(maxS / ds) + 2;
+    const Y = new Float32Array(ne * n).fill(NaN);
+    const T = new Float32Array(ne * n).fill(NaN);
+    const elev = new Float64Array(ne);
+    const last = new Int32Array(ne).fill(-1);
+    const endS = new Float64Array(ne), endY = new Float64Array(ne), endT = new Float64Array(ne);
+    const sd = new Array(ne).fill(null);
+
+    const rm = sh.rocket;
+    const hasMotor = !!(rm && rm.force0 > 0 && rm.tFire0 > 0);
+    const tLife = hasMotor && rm.tLife > 0 ? rm.tLife : 0;
+    const maxD = hasMotor && rm.maxDist > 0 ? rm.maxDist : (sh.maxDist > 0 ? sh.maxDist : 0);
+    const area = Math.PI * sh.cal * sh.cal / 4;
+    const t0Start = hasMotor ? Math.max(0, rm.tDelay || 0) : 0;
+    const t0End = hasMotor ? t0Start + rm.tFire0 : 0;
+    const t1Fire = hasMotor ? Math.max(0, rm.tFire1 || 0) : 0;
+    const t1End = t0End + t1Fire;
+    const m0End = hasMotor && rm.mEnd0 > 0 ? rm.mEnd0 : sh.m;
+    const m1End = hasMotor && t1Fire > 0 && rm.mEnd1 > 0 ? rm.mEnd1 : m0End;
+    const useMach = hasMotor && !!rm.cxMach;
+    const vStart = hasMotor ? Math.max(0, rm.vStart || 0) : sh.v0;
+    const kShell = hasMotor ? 0 : dragK(sh);
+
+    for (let k = 0; k < ne; k++) {
+      const deg = Math.min(pMaxDeg, pMinDeg + (pMaxDeg - pMinDeg) * k / (ne - 1));
+      const e = deg * DEG;
+      elev[k] = e;
+      const dirX = Math.cos(e), dirY = Math.sin(e);
+      const row = k * n;
+      Y[row] = 0; T[row] = 0; last[k] = 0;
+      let nextI = 1, nextS = ds;
+      let s = 0, y = y0, t = 0, selfDestruct = null;
+
+      if (hasMotor) {
+        let theta = e, uTube = vStart;
+        let vx = vAir + vStart * dirX, vy = vStart * dirY;
+        let onRail = vStart < 5, railDist = 0;
+        while (s < maxS + ds && t < 60 && y > yFloor) {
+          if (tLife > 0 && t >= tLife) { selfDestruct = "time"; break; }
+          if (maxD > 0 && s * s + (y - y0) * (y - y0) >= maxD * maxD) { selfDestruct = "dist"; break; }
+          const sp = s, yp = y, tp = t;
+          const dt = t <= t1End + 0.02 ? 0.004 : 0.016;
+          if (onRail) {
+            const mass = t < t0Start ? sh.m : t < t0End ? sh.m + (m0End - sh.m) * ((t - t0Start) / rm.tFire0) : m0End;
+            const thrust = t < t0Start ? 0 : t < t0End ? rm.force0 : (t1Fire > 0 && t < t1End ? (rm.force1 || 0) : 0);
+            if (thrust > 0 && railDist < 2.0) {
+              const spd = Math.hypot(vx, vy);
+              const cd = useMach ? sh.cx * rocketCd0(spd / soundSpeed(y)) : sh.cx;
+              const fDrag = 0.5 * cd * area * rho(y) * spd * spd;
+              const aTube = Math.max(0, (thrust - fDrag) / Math.max(1e-3, mass) - G * dirY);
+              const uNext = uTube + aTube * dt, uMid = 0.5 * (uTube + uNext);
+              railDist += uMid * dt; uTube = uNext;
+              s += (vAir + uMid * dirX) * dt; y += uMid * dirY * dt;
+              vx = vAir + uTube * dirX; vy = uTube * dirY; t += dt;
+              while (nextI < n && s >= nextS) {
+                const w = s > sp ? (nextS - sp) / (s - sp) : 0;
+                Y[row + nextI] = yp + (y - yp) * w - y0;
+                T[row + nextI] = tp + (t - tp) * w;
+                last[k] = nextI; nextI++; nextS = nextI * ds;
+              }
+              continue;
+            }
+            onRail = false;
+          }
+          if (t < t1End + 0.02) {
+            const spdNow = Math.sqrt(vx * vx + vy * vy);
+            const thNext = spdNow > 0.5 ? theta + (Math.atan2(vy, vx) - theta) * Math.min(1, 0.0025 * spdNow * dt) : theta;
+            let m1 = m1End, thr1 = 0;
+            if (t < t0End) { if (t < t0Start) m1 = sh.m; else { m1 = sh.m + (m0End - sh.m) * ((t - t0Start) / rm.tFire0); thr1 = rm.force0; } }
+            else if (t1Fire > 0 && t < t1End) { m1 = m0End + (m1End - m0End) * ((t - t0End) / t1Fire); thr1 = rm.force1 || 0; }
+            const cd1 = useMach ? sh.cx * rocketCd0(spdNow / soundSpeed(y)) : sh.cx;
+            const ad1 = (0.5 * cd1 * area * rho(y) * spdNow) / m1;
+            const ax1 = (thr1 / m1) * Math.cos(theta) - ad1 * vx;
+            const ay1 = (thr1 / m1) * Math.sin(theta) - ad1 * vy - G;
+
+            const vx2 = vx + ax1 * dt, vy2 = vy + ay1 * dt, y2 = y + vy * dt, t2 = t + dt;
+            const spd2 = Math.sqrt(vx2 * vx2 + vy2 * vy2);
+            let m2 = m1End, thr2 = 0;
+            if (t2 < t0End) { if (t2 < t0Start) m2 = sh.m; else { m2 = sh.m + (m0End - sh.m) * ((t2 - t0Start) / rm.tFire0); thr2 = rm.force0; } }
+            else if (t1Fire > 0 && t2 < t1End) { m2 = m0End + (m1End - m0End) * ((t2 - t0End) / t1Fire); thr2 = rm.force1 || 0; }
+            const cd2 = useMach ? sh.cx * rocketCd0(spd2 / soundSpeed(y2)) : sh.cx;
+            const ad2 = (0.5 * cd2 * area * rho(y2) * spd2) / m2;
+            const ax2 = (thr2 / m2) * Math.cos(thNext) - ad2 * vx2;
+            const ay2 = (thr2 / m2) * Math.sin(thNext) - ad2 * vy2 - G;
+
+            s += 0.5 * (vx + vx2) * dt; y += 0.5 * (vy + vy2) * dt;
+            vx += 0.5 * (ax1 + ax2) * dt; vy += 0.5 * (ay1 + ay2) * dt;
+            theta = thNext; t = t2;
+          } else {
+            // Post-burnout ballistic coast: thr = 0, zero trig calls!
+            const kCoast = (0.5 * area) / m1End;
+            const spd1 = Math.sqrt(vx * vx + vy * vy);
+            const cd1 = useMach ? sh.cx * rocketCd0(spd1 / soundSpeed(y)) : sh.cx;
+            const c1 = kCoast * cd1 * rho(y) * spd1;
+            const ax1 = -c1 * vx, ay1 = -c1 * vy - G;
+            const vx2 = vx + ax1 * dt, vy2 = vy + ay1 * dt, y2 = y + vy * dt;
+            const spd2 = Math.sqrt(vx2 * vx2 + vy2 * vy2);
+            const cd2 = useMach ? sh.cx * rocketCd0(spd2 / soundSpeed(y2)) : sh.cx;
+            const c2 = kCoast * cd2 * rho(y2) * spd2;
+            const ax2 = -c2 * vx2, ay2 = -c2 * vy2 - G;
+            s += 0.5 * (vx + vx2) * dt; y += 0.5 * (vy + vy2) * dt;
+            vx += 0.5 * (ax1 + ax2) * dt; vy += 0.5 * (ay1 + ay2) * dt;
+            t += dt;
+          }
+          while (nextI < n && s >= nextS) {
+            const w = s > sp ? (nextS - sp) / (s - sp) : 0;
+            const yd = yp + (y - yp) * w, td = tp + (t - tp) * w;
+            if ((tLife > 0 && td > tLife) || (maxD > 0 && nextS * nextS + (yd - y0) * (yd - y0) > maxD * maxD)) {
+              selfDestruct = tLife > 0 && td > tLife ? "time" : "dist";
+              break;
+            }
+            Y[row + nextI] = yd - y0;
+            T[row + nextI] = td;
+            last[k] = nextI; nextI++; nextS = nextI * ds;
+          }
+          if (selfDestruct || (vx < -1 && s < sp)) break;
+        }
+      } else {
+        let vx = vAir + vStart * dirX, vy = vStart * dirY;
+        const dt = 0.012;
+        if (vx > 0) {
+          while (s < maxS + ds && t < 60 && y > yFloor) {
+            if (maxD > 0 && s * s + (y - y0) * (y - y0) >= maxD * maxD) { selfDestruct = "dist"; break; }
+            const sp = s, yp = y, tp = t;
+            const c1 = kShell * rho(y) * Math.hypot(vx, vy);
+            const ax1 = -c1 * vx, ay1 = -G - c1 * vy;
+            const vx2 = vx + ax1 * dt, vy2 = vy + ay1 * dt;
+            const c2 = kShell * rho(y + vy * dt) * Math.hypot(vx2, vy2);
+            const ax2 = -c2 * vx2, ay2 = -G - c2 * vy2;
+            s += 0.5 * (vx + vx2) * dt; y += 0.5 * (vy + vy2) * dt;
+            vx += 0.5 * (ax1 + ax2) * dt; vy += 0.5 * (ay1 + ay2) * dt; t += dt;
+            while (nextI < n && s >= nextS) {
+              const w = s > sp ? (nextS - sp) / (s - sp) : 0;
+              Y[row + nextI] = yp + (y - yp) * w - y0;
+              T[row + nextI] = tp + (t - tp) * w;
+              last[k] = nextI; nextI++; nextS = nextI * ds;
+            }
+          }
+        }
+      }
+      endS[k] = s; endY[k] = y; endT[k] = t; sd[k] = selfDestruct;
+    }
+
+    function interpAt(k, d) {
+      if (d < 0 || last[k] < 0) return [NaN, NaN];
+      const fi = d / ds, i0 = fi | 0, row = k * n;
+      if (i0 < last[k]) {
+        const w = fi - i0;
+        return [Y[row + i0] + (Y[row + i0 + 1] - Y[row + i0]) * w, T[row + i0] + (T[row + i0 + 1] - T[row + i0]) * w];
+      }
+      const s0 = last[k] * ds;
+      if (!sd[k] && d <= endS[k] && endS[k] > s0) {
+        const w = (d - s0) / (endS[k] - s0);
+        return [Y[row + last[k]] + ((endY[k] - y0) - Y[row + last[k]]) * w, T[row + last[k]] + (endT[k] - T[row + last[k]]) * w];
+      }
+      if (Math.abs(d - s0) < 1e-6) return [Y[row + last[k]], T[row + last[k]]];
+      return [NaN, NaN];
+    }
+
+    function solve(_shell, d, dy) {
+      if (d <= 0.5) return [];
+      const sols = [];
+      let [py, pt] = interpAt(0, d);
+      let pv = py - dy;
+      for (let k = 1; k < ne; k++) {
+        const [cy, ct] = interpAt(k, d);
+        const v = cy - dy;
+        if (pv === pv && v === v && (pv <= 0) !== (v <= 0)) {
+          const w = pv / (pv - v);
+          sols.push([elev[k - 1] + (elev[k] - elev[k - 1]) * w, pt + (ct - pt) * w]);
+        }
+        pv = v; pt = ct;
+      }
+      return sols;
+    }
+
+    function reachRow(k, yTarget) {
+      const dyT = yTarget - y0, row = k * n;
+      for (let i = 1; i <= last[k]; i++) {
+        const yp = Y[row + i - 1], yc = Y[row + i];
+        if (yc <= dyT && yp >= dyT) {
+          const w = (yp - dyT) / Math.max(1e-6, yp - yc);
+          return [(i - 1 + w) * ds, T[row + i - 1] + (T[row + i] - T[row + i - 1]) * w];
+        }
+      }
+      const s0 = last[k] * ds, yp = Y[row + last[k]] + y0;
+      if (!sd[k] && endS[k] > s0 && endY[k] <= yTarget && yp >= yTarget) {
+        const w = (yp - yTarget) / Math.max(1e-6, yp - endY[k]);
+        return [s0 + (endS[k] - s0) * w, T[row + last[k]] + (endT[k] - T[row + last[k]]) * w];
+      }
+      return [0, 0];
+    }
+
+    function span05(elevRad, yTarget) {
+      const reachAtAngle = ang => {
+        if (ang < elev[0] || ang > elev[ne - 1]) return NaN;
+        const kf = (ang - elev[0]) / ((elev[ne - 1] - elev[0]) / (ne - 1));
+        const k0 = Math.min(ne - 2, Math.max(0, kf | 0)), w = kf - k0;
+        const r0 = reachRow(k0, yTarget)[0], r1 = reachRow(k0 + 1, yTarget)[0];
+        return r0 > 0 && r1 > 0 ? r0 + (r1 - r0) * w : NaN;
+      };
+      const a = reachAtAngle(elevRad - 0.5 * DEG), b = reachAtAngle(elevRad + 0.5 * DEG);
+      return isFinite(a) && isFinite(b) ? Math.abs(b - a) : NaN;
+    }
+
+    function envelope(yTarget) {
+      let bestS = 0, bestDeg = 0, bestT = 0, bestReason = "pitch", cappedBy = null;
+      for (let k = 0; k < ne; k++) {
+        const deg = elev[k] / DEG;
+        if (deg < -20 || deg > 50) continue;
+        const [reach, tof] = reachRow(k, yTarget);
+        if (reach === 0 && endY[k] > yTarget && sd[k]) { cappedBy = sd[k]; continue; }
+        if (reach > bestS) { bestS = reach; bestDeg = deg; bestT = tof; bestReason = sd[k] || "ground"; }
+      }
+      if (cappedBy) bestReason = cappedBy;
+      else if (tLife > 0 && bestT >= tLife - 0.5) bestReason = "time";
+      else if (maxD > 0 && Math.hypot(bestS, yTarget - y0) >= maxD - 80) bestReason = "dist";
+      return { maxS: bestS, elevDeg: bestDeg, tof: bestT, reason: bestReason, tLife, maxDist: maxD };
+    }
+
+    return { solve, envelope, span05 };
+  }
+
+  function maxRocketEnvelope(sh, y0, yTarget, pMinDeg, pMaxDeg, opt) {
+    if (pMinDeg != null && typeof pMinDeg === "object") { opt = pMinDeg; pMinDeg = -20; pMaxDeg = 45; }
+    if (pMinDeg == null) pMinDeg = -20;
+    if (pMaxDeg == null) pMaxDeg = 45;
+    const vAir = opt && opt.vAir ? opt.vAir : 0;
+    return buildTrajFan(sh, y0, Math.max(-20, pMinDeg), Math.min(50, pMaxDeg), vAir, 20000, yTarget - 50).envelope(yTarget);
+  }
+
+  function buildTable(sh, pMinDeg, pMaxDeg, stepDeg, yAlt, yFloorAbs, maxS, ds, opt) {
+    const vAir = opt && opt.vAir ? opt.vAir : 0;
     const ne = Math.max(2, Math.floor((pMaxDeg - pMinDeg) / stepDeg + 1e-9) + 1);
     const n = Math.ceil(maxS / ds) + 1;
     const Y = new Float32Array(ne * n).fill(NaN);
@@ -682,7 +1212,7 @@ var WT = (function () {
     for (let k = 0; k < ne; k++) {
       const e = Math.min(pMaxDeg, pMinDeg + k * stepDeg) * DEG;
       elev[k] = e;
-      const tr = simulate(sh, e, yAlt, maxS + ds, { yFloor: yFloorAbs, dt: dtOpt });
+      const tr = simulate(sh, e, yAlt, maxS + ds, { yFloor: yFloorAbs, dt: dtOpt, vAir });
       const S = tr.s, TY = tr.y;
       let p = 0, best = -Infinity, bi = 0;
       for (let i = 0; i < n; i++) {
@@ -709,6 +1239,25 @@ var WT = (function () {
       u16[i] = (u16[i] + l + u - ul) & 0xffff;
     }
     return u16;
+  }
+
+  function outerGroundAt(meta, T, x, z) {
+    if (T.inside(x, z)) return T.heightAt(x, z);
+    const edgeH = T.heightAt(x, z);
+    const pads = meta && meta.helipads;
+    if (!pads || !pads.length) return edgeH;
+    let bestD = Infinity, nearPad = null;
+    for (let i = 0; i < pads.length; i++) {
+      const d = Math.hypot(x - pads[i].x, z - pads[i].z);
+      if (d < bestD) { bestD = d; nearPad = pads[i]; }
+    }
+    if (!nearPad) return edgeH;
+    if (bestD <= 120) return nearPad.y;
+    const dxEdge = x < T.ox ? T.ox - x : x > T.x1 ? x - T.x1 : 0;
+    const dzEdge = z < T.oz ? T.oz - z : z > T.z1 ? z - T.z1 : 0;
+    const dEdge = Math.hypot(dxEdge, dzEdge);
+    const wPad = 1 / Math.max(1, bestD - 120), wEdge = 1 / Math.max(1, dEdge);
+    return (nearPad.y * wPad + edgeH * wEdge) / (wPad + wEdge);
   }
 
   function makeTerrain(meta, h16, grids) {
@@ -744,31 +1293,43 @@ var WT = (function () {
     const inside = (x, z) => x >= ox && z >= oz && x <= x1 && z <= z1;
     let lo = Infinity, hi = -Infinity;
     for (let i = 0; i < H.length; i++) { if (H[i] < lo) lo = H[i]; if (H[i] > hi) hi = H[i]; }
-    return { H, w, h, cell, ox, oz, x1, z1, lo, hi, heightAt, inside, srcAt };
+    return { H, w, h, cell, ox, oz, x1, z1, lo, hi, heightAt, inside, srcAt, meta };
   }
 
   function rayDir(a, nAz) { const t = 2 * Math.PI * a / nAz; return [Math.sin(t), Math.cos(t)]; }
 
   function sweepReach(T, Tr, tab, A, p, a0, a1) {
     const { Y, n, ne, ds, apex, last } = tab;
-    const yA = (p.yPt != null ? p.yPt : Tr.heightAt(A.x, A.z)) + p.gunH;
-    const out = new Uint8Array((a1 - a0) * n), prof = new Float32Array(n), stand = new Float32Array(n);
+    const yA = (p.yPt != null ? p.yPt : outerGroundAt(T.meta, Tr, A.x, A.z)) + p.gunH;
+    const out = new Uint8Array((a1 - a0) * n), prof = new Float32Array(n), stand = new Float32Array(n), inBox = new Uint8Array(n);
     for (let a = a0; a < a1; a++) {
       const [dx, dz] = rayDir(a, p.nAz);
-      let nMax = n, top = -Infinity;
+      let nMax = 0, top = -Infinity, entered = false;
       for (let i = 0; i < n; i++) {
         const x = A.x + dx * i * ds, z = A.z + dz * i * ds;
-        if (!T.inside(x, z)) { nMax = i; break; }
+        if (!T.inside(x, z)) {
+          if (entered) break;
+          const og = surfHeight(T, x, z) - yA;
+          prof[i] = og; stand[i] = og; inBox[i] = 0; nMax = i + 1;
+          continue;
+        }
+        entered = true;
+        inBox[i] = 1; nMax = i + 1;
         const g = T.heightAt(x, z) - yA, st = Tr.heightAt(x, z) - yA;
         prof[i] = g; stand[i] = st;
         if (st > top) top = st;
       }
+      if (!entered) continue;
       const ceil = top + p.tgtH, row0 = (a - a0) * n;
       for (let k = 0; k < ne; k++) {
         const r = k * n, ap = apex[k];
         for (let i = 1; i < nMax; i++) {
           const y = Y[r + i];
           if (y !== y) break;
+          if (!inBox[i]) {
+            if (y < prof[i]) break;
+            continue;
+          }
           if (y > ceil) {
             if (i >= ap) continue;
             let lo = ap, hi = Math.min(nMax - 1, last[k]);
@@ -797,7 +1358,7 @@ var WT = (function () {
 
   function sweepHit(T, Tr, tab, B, p, a0, a1) {
     const { Y, n, ne, ds } = tab;
-    const yB = (p.yPt != null ? p.yPt : Tr.heightAt(B.x, B.z)) + p.tgtH;
+    const yB = (p.yPt != null ? p.yPt : outerGroundAt(T.meta, Tr, B.x, B.z)) + p.tgtH;
     const out = new Uint8Array((a1 - a0) * n), g = new Float32Array(n), st = new Float32Array(n), sols = [];
     for (let a = a0; a < a1; a++) {
       const [dx, dz] = rayDir(a, p.nAz);
@@ -830,10 +1391,17 @@ var WT = (function () {
     const out = new Uint8Array((a1 - a0) * n);
     for (let a = a0; a < a1; a++) {
       const [dx, dz] = rayDir(a, p.nAz), row0 = (a - a0) * n;
-      let maxS = -Infinity, hor = -1, prevVis = true;
+      let maxS = -Infinity, hor = -1, prevVis = true, entered = false;
       for (let i = 1; i < n; i++) {
         const d = i * p.ds, x = P.x + dx * d, z = P.z + dz * d;
-        if (!T.inside(x, z)) break;
+        if (!T.inside(x, z)) {
+          if (entered) break;
+          const og = surfHeight(T, x, z);
+          const sl0 = (og - yE) / d;
+          if (sl0 > maxS) maxS = sl0;
+          continue;
+        }
+        entered = true;
         const s = T.heightAt(x, z), top = T.srcAt(x, z) ? s : s + p.tgtH;
         const vis = (top - yE) / d >= maxS;
         if (vis) out[row0 + i] = 1;
@@ -846,24 +1414,56 @@ var WT = (function () {
     return out;
   }
 
+  function padBasis(pd) {
+    const l = Math.hypot(pd.ux || 0, pd.uz || 0);
+    if (l > 1e-4) return [pd.ux / l, pd.uz / l];
+    const yr = (pd.yaw || 0) * DEG;
+    return [-Math.sin(yr), -Math.cos(yr)];
+  }
+  function padExtents(pd) {
+    const uc = String(pd.uc || "").toLowerCase();
+    const hx = pd.hx > 10 ? pd.hx : (uc.includes("beton_b") ? 262 : 139);
+    const hz = pd.hz > 10 ? pd.hz : 136;
+    return [hx, hz];
+  }
+  function withPads(meta, x, z, baseY) {
+    const pads = meta && meta.helipads;
+    if (!pads || !pads.length) return baseY;
+    let h = baseY;
+    for (let i = 0; i < pads.length; i++) {
+      const pd = pads[i], [hx, hz] = padExtents(pd);
+      if (Math.abs(x - pd.x) > hx + hz + 40 || Math.abs(z - pd.z) > hx + hz + 40) continue;
+      const [ux, uz] = padBasis(pd), dx = x - pd.x, dz = z - pd.z;
+      const lx = dx * ux + dz * uz, lz = -dx * uz + dz * ux;
+      const dRect = Math.hypot(Math.max(0, Math.abs(lx) - hx), Math.max(0, Math.abs(lz) - hz));
+      if (dRect <= 0) { if (pd.y > h) h = pd.y; }
+      else if (dRect < 32) { const sy = pd.y - (dRect / 32) * 24; if (sy > h) h = sy; }
+    }
+    return h;
+  }
+
+  function surfHeight(T, x, z) {
+    const base = T.inside(x, z) ? T.heightAt(x, z) : (T.tAir ? T.tAir.heightAt(x, z) : outerGroundAt(T.meta, T, x, z));
+    return withPads(T.meta, x, z, base);
+  }
   function losBlocked(T, A, yA, B, yB, step) {
     const d = Math.hypot(B.x - A.x, B.z - A.z);
     if (d < 1e-6) return null;
     const dx = (B.x - A.x) / d, dz = (B.z - A.z) / d;
     for (let s = step; s < d - 0.5; s += step) {
-      if (T.heightAt(A.x + dx * s, A.z + dz * s) > yA + (yB - yA) * s / d) return s;
+      if (surfHeight(T, A.x + dx * s, A.z + dz * s) > yA + (yB - yA) * s / d) return s;
     }
     return null;
   }
   function pathBlocked(T, A, dir, tr, d, step) {
     for (let s = step; s < d - 0.5; s += step) {
       const y = atDist(tr, "y", s);
-      if (!(y >= T.heightAt(A.x + dir[0] * s, A.z + dir[1] * s))) return s;
+      if (!(y >= surfHeight(T, A.x + dir[0] * s, A.z + dir[1] * s))) return s;
     }
     return null;
   }
 
-  return { G, DEG, rho, dragK, simulate, atDist, solveExact, buildTable, unpredict, makeTerrain, rayDir, sweepReach, sweepHit, sweepView, losBlocked, pathBlocked };
+  return { G, DEG, rho, soundSpeed, rocketCd0, dragK, simulate, simAtDist, atDist, solveExact, buildTrajFan, maxRocketEnvelope, buildTable, unpredict, outerGroundAt, padBasis, padExtents, withPads, surfHeight, makeTerrain, rayDir, sweepReach, sweepHit, sweepView, losBlocked, pathBlocked };
 })();
 if (typeof module !== "undefined") module.exports = WT;
 </script>
@@ -873,6 +1473,11 @@ onmessage = e => {
   const m = e.data;
   const T = WT.makeTerrain(m.meta, m.h16, m.grids);
   const Tr = m.roof ? WT.makeTerrain(m.meta, m.h16, [m.roof]) : T;
+  if (m.airMeta && m.airH16) {
+    const tAir = WT.makeTerrain(m.airMeta, m.airH16);
+    T.tAir = tAir;
+    Tr.tAir = tAir;
+  }
   const p = m.p;
   if (m.kind === "view") {
     const out = WT.sweepView(T, m.pt, p, m.a0, m.a1);
@@ -880,7 +1485,7 @@ onmessage = e => {
     return;
   }
   const yAlt = p.yPt + (m.kind === "reach" ? p.gunH : p.tgtH);
-  const tab = WT.buildTable(m.shell, p.pMin, p.pMax, p.eStep, yAlt, T.lo - 10, p.range, p.ds);
+  const tab = WT.buildTable(m.shell, p.pMin, p.pMax, p.eStep, yAlt, T.lo - 200, p.range, p.ds, { vAir: p.vAir || 0 });
   const out = (m.kind === "reach" ? WT.sweepReach : WT.sweepHit)(T, Tr, tab, m.pt, p, m.a0, m.a1);
   postMessage({ a0: m.a0, a1: m.a1, n: tab.n, out }, [out.buffer]);
 };
@@ -1127,11 +1732,25 @@ const SWITCH_IDS = ["showRedZone", "showProhib", "showCaps", "showWater", "showG
 
 const isMobileScreen = () => window.innerWidth <= 900;
 const isCoarsePointer = () => window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-let INDEX = null, MAP = null, TANK = null, SHELL = null;
+let INDEX = null, MAP = null, TANK = null, SHELL = null, HELIPAD_LIB = null;
 let A = null, B = null, heading = null, overlay = null, job = null, aim = null;
 let hiddenRed = new Set();
+let vehCat = "all"; // "all" | "ground" | "heli"
+let lastGroundId = null, lastHeliId = null;
+let heliAgl = 35, heliSpdKmh = 0;
+let pinnedTargets = []; // [{ id, name, x, z }]
+let activeHeliEnv = null;
 let touchPlaceMode = (isCoarsePointer() || isMobileScreen()) ? "A" : "auto"; // "auto" | "A" | "B" | "pan"
 const view = { cx: 0, cz: 0, s: 0.25 };
+const isHeli = () => !!(TANK && TANK.kind === "heli");
+
+function groundAt(Surf, x, z) {
+  if (!MAP) return 0;
+  const base = Surf.inside(x, z)
+    ? Surf.heightAt(x, z)
+    : (MAP.Tair ? MAP.Tair.heightAt(x, z) : WT.outerGroundAt(MAP.meta, Surf, x, z));
+  return WT.withPads(MAP.meta, x, z, base);
+}
 
 if (isMobileScreen()) {
   document.body.classList.add("side-collapsed");
@@ -1140,7 +1759,17 @@ if (isMobileScreen()) {
 
 function setStatus(msg, bad) { const el = $("status"); el.hidden = !msg; el.textContent = msg || ""; el.classList.toggle("bad", !!bad); }
 const num = (id, def = 0) => { const v = parseFloat($(id).value); return isFinite(v) ? v : def; };
-function params() { return { pMin: num("pMin", -10), pMax: num("pMax", 20), range: Math.max(100, num("range", 2500)), gunH: num("gunH", 2.0), tgtH: num("tgtH", 1.5) }; }
+function params() {
+  const hMode = isHeli();
+  return {
+    pMin: num("pMin", hMode ? -45 : -10),
+    pMax: num("pMax", hMode ? 45 : 20),
+    range: Math.max(100, num("range", hMode ? 8000 : 2500)),
+    gunH: hMode ? Math.max(0, heliAgl) : num("gunH", 2.0),
+    tgtH: num("tgtH", 1.5),
+    vAir: hMode ? Math.max(0, heliSpdKmh) / 3.6 : 0,
+  };
+}
 
 // Mobile / narrow sidebar drawer, swipe-to-close & touch placement mode sync
 function setSidebarOpen(open) {
@@ -1313,14 +1942,15 @@ function collectCurrentPreset() {
   sw.detail3d = $("detail3d").value;
   sw.perf = $("perf").value;
   const distStr = A && B ? ` · ${Math.round(Math.hypot(B.x - A.x, B.z - A.z))}m` : "";
+  const altStr = isHeli() ? ` · +${Math.round(heliAgl)}m` : "";
   const shortTank = TANK.name.replace(/^\[[^\]]+\]\s*/, "");
-  const defaultName = `${curMapTitle()} · ${shortTank}${distStr}`.slice(0, 56);
-  const summary = `${curMapTitle()} · ${TANK.name}${SHELL ? " · " + SHELL.name : ""}${A && B ? distStr : " · 未标点"}`;
+  const defaultName = `${curMapTitle()} · ${shortTank}${altStr}${distStr}`.slice(0, 56);
+  const summary = `${curMapTitle()} · ${TANK.name}${SHELL ? " · " + SHELL.name : ""}${altStr}${A && B ? distStr : " · 未标点"}`;
   return {
     defaultName,
     summary,
     data: {
-      v: 1,
+      v: 2,
       map: MAP.meta.name,
       gameMode: $("gameMode").value,
       missionIdx: +$("misSel").value,
@@ -1331,8 +1961,11 @@ function collectCurrentPreset() {
       pMin: p.pMin,
       pMax: p.pMax,
       range: p.range,
-      gunH: p.gunH,
+      gunH: num("gunH", 2.0),
       tgtH: p.tgtH,
+      heliAgl: +heliAgl.toFixed(1),
+      heliSpd: +heliSpdKmh.toFixed(1),
+      pinnedTargets: pinnedTargets.slice(0, 8),
       A: A ? { x: +A.x.toFixed(2), z: +A.z.toFixed(2) } : null,
       B: B ? { x: +B.x.toFixed(2), z: +B.z.toFixed(2) } : null,
       heading: heading != null ? +heading.toFixed(4) : null,
@@ -1363,6 +1996,10 @@ function applyPresetImmediate(d) {
   MAP.zones = null;
   rebuildRedPicker();
 
+  if (d.heliAgl != null && isFinite(d.heliAgl)) heliAgl = Math.max(0, d.heliAgl);
+  if (d.heliSpd != null && isFinite(d.heliSpd)) heliSpdKmh = Math.max(0, d.heliSpd);
+  pinnedTargets = Array.isArray(d.pinnedTargets) ? d.pinnedTargets.filter(pt => pt && isFinite(pt.x) && isFinite(pt.z)).slice(0, 8) : [];
+
   if (d.tankId) {
     const t = INDEX.tanks.find(x => x.id === d.tankId);
     if (t) { pickTank(t, d.shellKey); showTankName(); }
@@ -1377,6 +2014,7 @@ function applyPresetImmediate(d) {
   B = d.B && isFinite(d.B.x) && isFinite(d.B.z) ? { x: d.B.x, z: d.B.z } : null;
   heading = d.heading != null && isFinite(d.heading) ? d.heading : (A && B ? Math.atan2(B.x - A.x, B.z - A.z) : null);
   overlay = null; $("legend").hidden = true;
+  syncHeliAltUI();
 
   if (d.view2d && isFinite(d.view2d.cx) && isFinite(d.view2d.s)) {
     view.cx = d.view2d.cx; view.cz = d.view2d.cz; view.s = d.view2d.s;
@@ -1477,22 +2115,71 @@ $("btnDelPreset").onclick = async () => {
 };
 
 // ------------------------------------------------------------------ Index, Searchable Map & Searchable Tank Comboboxes
+function syncVehTabsUI() {
+  const nAll = INDEX ? INDEX.tanks.length : 0;
+  const nHeli = INDEX ? INDEX.tanks.filter(t => t.kind === "heli").length : 0;
+  const nGnd = nAll - nHeli;
+  $("vehTabs").querySelectorAll("button[data-vcat]").forEach(btn => {
+    const c = btn.dataset.vcat;
+    btn.classList.toggle("active", c === vehCat);
+    if (nAll) {
+      btn.textContent = c === "all" ? `全部 (${nAll})` : c === "ground" ? `陆战 (${nGnd})` : `直升机 (${nHeli})`;
+    }
+  });
+  $("tankFindLbl").textContent = vehCat === "heli"
+    ? `武装直升机（共 ${nHeli} 架，支持搜卡52、直10、米24、阿帕奇…）`
+    : vehCat === "ground"
+    ? `地面载具（共 ${nGnd} 辆，支持搜安德柳沙、喀秋莎、突击虎、99a…）`
+    : `载具型号（陆战 ${nGnd} + 武直 ${nHeli}，支持中文/外号/型号）`;
+}
+
+$("vehTabs").addEventListener("click", e => {
+  const btn = e.target.closest("button[data-vcat]");
+  if (!btn || !INDEX) return;
+  vehCat = btn.dataset.vcat;
+  syncVehTabsUI();
+  if (vehCat === "heli" && !isHeli()) {
+    const h = INDEX.tanks.find(t => t.id === lastHeliId)
+      || INDEX.tanks.find(t => t.id === "heli_ka_52")
+      || INDEX.tanks.find(t => t.kind === "heli");
+    if (h) {
+      pickTank(h); showTankName();
+      if (MAP && (!A || MAP.T.inside(A.x, A.z))) fitAirspace();
+    }
+  } else if (vehCat === "ground" && isHeli()) {
+    const g = INDEX.tanks.find(t => t.id === lastGroundId) || INDEX.tanks.find(t => t.kind !== "heli");
+    if (g) { pickTank(g); showTankName(); }
+  }
+});
+
 window.WTV_INDEX = idx => {
   INDEX = idx;
   setStatus("");
+  syncVehTabsUI();
   $("mapSel").innerHTML = idx.maps.map(m => `<option value="${m.name}">${escHtml(m.title || mapTitle(m.name))}</option>`).join("");
   const last = (() => { try { return JSON.parse(localStorage.getItem("wtv_cn") || "{}"); } catch { return {}; } })();
   if (last.map && idx.maps.some(m => m.name === last.map)) $("mapSel").value = last.map;
+  if (isFinite(last.heliAgl)) heliAgl = Math.max(0, last.heliAgl);
+  if (isFinite(last.heliSpd)) heliSpdKmh = Math.max(0, last.heliSpd);
   const t = idx.tanks.find(t => t.id === last.tank) || idx.tanks[0];
   if (t) { pickTank(t, last.shell); showTankName(); }
   loadTank3D("leopard_2a4");
   loadTank3D(TARGET_MODEL);
+  loadScript("/data/helipads.js");
   showMapName();
   if (idx.maps.length) loadMap($("mapSel").value); else setStatus("索引中无可用地图数据", true);
 };
 
 function remember() {
-  try { localStorage.setItem("wtv_cn", JSON.stringify({ map: MAP && MAP.meta.name, tank: TANK && TANK.id, shell: $("shellSel").value })); } catch {}
+  try {
+    localStorage.setItem("wtv_cn", JSON.stringify({
+      map: MAP && MAP.meta.name,
+      tank: TANK && TANK.id,
+      shell: $("shellSel").value,
+      heliAgl: +heliAgl.toFixed(1),
+      heliSpd: +heliSpdKmh.toFixed(1),
+    }));
+  } catch {}
 }
 
 function showMapName() { $("mapFind").value = curMapTitle(); }
@@ -1560,7 +2247,12 @@ makeCombo({
 
 makeCombo({
   inputId: "tankFind", listId: "tankListUl",
-  getItems: () => INDEX ? INDEX.tanks : [],
+  getItems: () => {
+    if (!INDEX) return [];
+    if (vehCat === "heli") return INDEX.tanks.filter(t => t.kind === "heli");
+    if (vehCat === "ground") return INDEX.tanks.filter(t => t.kind !== "heli");
+    return INDEX.tanks;
+  },
   currentLabel: () => TANK ? TANK.name : "",
   isCurrent: t => TANK && t.id === TANK.id,
   itemSearch: t => `${t.name} ${t.en || ""} ${t.id} ${t.id.replace(/_/g, "")}`.toLowerCase(),
@@ -1574,6 +2266,129 @@ addEventListener("keydown", e => {
     e.preventDefault(); $("mapFind").focus();
   }
 });
+
+// ------------------------------------------------------------------ Helicopter Pad & Altitude Helpers
+function syncHeliPadButtons() {
+  const pads = (MAP && MAP.meta && MAP.meta.helipads) || [];
+  const byId = Object.fromEntries(pads.map(p => [p.id, p]));
+  $("heliPadGrid").querySelectorAll("button[data-pad]").forEach(btn => {
+    const pid = btn.dataset.pad, pd = byId[pid];
+    btn.disabled = !pd;
+    let nearA = false;
+    if (pd && A) {
+      const [ux, uz] = WT.padBasis(pd), [hx, hz] = WT.padExtents(pd);
+      const dx = A.x - pd.x, dz = A.z - pd.z;
+      nearA = Math.abs(dx * ux + dz * uz) <= hx && Math.abs(-dx * uz + dz * ux) <= hz;
+    }
+    btn.classList.toggle("act", !!nearA);
+    const sm = $("padAlt_" + pid);
+    if (sm) sm.textContent = pd ? `${Math.round(pd.y)}m` : "—";
+  });
+}
+
+function syncHeliAltUI() {
+  const hMode = isHeli();
+  $("heliBox").hidden = !hMode;
+  $("gunHWrap").hidden = hMode;
+  $("out").hidden = hMode;
+  $("heliOutWrap").hidden = !hMode;
+  $("aimCardTitle").textContent = hMode ? "直升机火箭弹射表（方位 + 仰角）" : "弹道解算 A → B";
+  $("padAltDown").hidden = !hMode;
+  $("padAltUp").hidden = !hMode;
+  $("padSpacerL").hidden = hMode;
+  $("padSpacerR").hidden = hMode;
+  if (!hMode) return;
+
+  const ccipEl = $("heliCcipTag");
+  ccipEl.textContent = TANK && TANK.ccip ? "游戏内带 CCIP" : "纯手拉标尺机型";
+  ccipEl.classList.toggle("manual", !(TANK && TANK.ccip));
+
+  const gBase = MAP && A ? groundAt(MAP.Tr, A.x, A.z) : (MAP ? MAP.T.lo : 0);
+  $("heliAgl").value = Math.round(heliAgl);
+  $("heliAglSlider").value = Math.min(600, Math.round(heliAgl));
+  $("heliAsl").value = Math.round(gBase + heliAgl);
+  $("heliSpd").value = Math.round(heliSpdKmh);
+  syncHeliPadButtons();
+}
+
+function snapToHelipad(padId) {
+  if (!MAP || !MAP.meta.helipads) return;
+  const pd = MAP.meta.helipads.find(x => x.id === padId);
+  if (!pd) return;
+  A = { x: pd.x, z: pd.z };
+  heading = B ? Math.atan2(B.x - A.x, B.z - A.z) : (pd.yaw || 0) * WT.DEG;
+  // If B is not placed yet, auto-place B on the first capture point so the pilot immediately gets a live solution!
+  if (!B) {
+    const cap = activeAreas().find(a => a.kind === "capture");
+    if (cap) { const sh = areaShape(cap); B = { x: sh.c[0], z: sh.c[1] }; heading = Math.atan2(B.x - A.x, B.z - A.z); }
+  }
+  syncHeliAltUI();
+  fitAirspace(pd);
+  updateAim();
+  if (isMobileScreen()) setSidebarOpen(false);
+  showToast(`已就位：${pd.name}（地面海拔 ${pd.y.toFixed(1)}m，悬停 +${Math.round(heliAgl)}m）`);
+}
+
+$("heliPadGrid").addEventListener("click", e => {
+  const b = e.target.closest("button[data-pad]");
+  if (b) snapToHelipad(b.dataset.pad);
+});
+$("btnFitAirspace").onclick = () => { fitAirspace(); if (isMobileScreen()) setSidebarOpen(false); };
+$("btnFitBattle").onclick = () => { centerMap(true); if (isMobileScreen()) setSidebarOpen(false); };
+
+$("heliAgl").addEventListener("input", () => {
+  heliAgl = Math.max(0, Math.min(5000, num("heliAgl", 35)));
+  const gBase = MAP && A ? groundAt(MAP.Tr, A.x, A.z) : 0;
+  $("heliAglSlider").value = Math.min(600, Math.round(heliAgl));
+  $("heliAsl").value = Math.round(gBase + heliAgl);
+  remember(); updateAim();
+});
+$("heliAglSlider").addEventListener("input", () => {
+  heliAgl = Math.max(0, parseFloat($("heliAglSlider").value) || 0);
+  const gBase = MAP && A ? groundAt(MAP.Tr, A.x, A.z) : 0;
+  $("heliAgl").value = Math.round(heliAgl);
+  $("heliAsl").value = Math.round(gBase + heliAgl);
+  remember(); updateAim();
+});
+$("heliAsl").addEventListener("change", () => {
+  const gBase = MAP && A ? groundAt(MAP.Tr, A.x, A.z) : 0;
+  const asl = num("heliAsl", gBase + 35);
+  heliAgl = Math.max(0, asl - gBase);
+  syncHeliAltUI();
+  remember(); updateAim();
+});
+$("aglChips").addEventListener("click", e => {
+  const b = e.target.closest("button[data-agl]");
+  if (!b) return;
+  heliAgl = parseFloat(b.dataset.agl) || 0;
+  syncHeliAltUI(); remember(); updateAim();
+});
+$("heliSpd").addEventListener("input", () => {
+  heliSpdKmh = Math.max(0, Math.min(500, num("heliSpd", 0)));
+  remember(); updateAim();
+});
+$("spdChips").addEventListener("click", e => {
+  const b = e.target.closest("button[data-spd]");
+  if (!b) return;
+  heliSpdKmh = parseFloat(b.dataset.spd) || 0;
+  $("heliSpd").value = Math.round(heliSpdKmh);
+  remember(); updateAim();
+});
+$("btnToggleLadder").onclick = () => {
+  const bd = $("heliLadderBody");
+  bd.hidden = !bd.hidden;
+  $("ladderFoldHint").textContent = bd.hidden ? "▸ 展开" : "▾ 收起";
+};
+$("btnPinB").onclick = () => {
+  if (!B) { showToast("请先在地图上右键（或点选）放置目标点 B"); return; }
+  if (pinnedTargets.length >= 8) { showToast("最多钉住 8 个自定义目标点，可先点 × 删除旧点"); return; }
+  const def = `标定点 #${pinnedTargets.length + 1}`;
+  const custom = isMobileScreen() ? def : prompt("为该目标点命名（如：敌方防空车位、桥头拐角）：", def);
+  if (custom === null) return;
+  pinnedTargets.push({ id: Date.now() + Math.random(), name: (custom.trim() || def).slice(0, 20), x: +B.x.toFixed(1), z: +B.z.toFixed(1) });
+  updateAim();
+  showToast(`已钉入射表：${pinnedTargets[pinnedTargets.length - 1].name}`);
+};
 
 // ------------------------------------------------------------------ Map, Objects (v2 & v3), Ground & Tanks
 let mapLoadSeq = 0;
@@ -1593,9 +2408,10 @@ window.WTV_MAP = async obj => {
     if (isPred) WT.unpredict(h16, obj.width);
     if (h16.length !== obj.width * obj.height) throw new Error("高程网格尺寸不匹配");
     const T = WT.makeTerrain(obj, h16);
-    MAP = { meta: obj, h16, T, Tr: T, Tv: T, Tc: T, Ts: T, roof: null, veg: null, obj: null, ground: null, img: null, zones: null, water: null };
+    MAP = { meta: obj, h16, T, Tr: T, Tv: T, Tc: T, Ts: T, Tair: null, airH16: null, airImg: null, airWater: null, roof: null, veg: null, obj: null, ground: null, img: null, zones: null, water: null };
     MAP.img = compose();
     A = B = heading = overlay = aim = null;
+    pinnedTargets = [];
     hiddenRed.clear();
     missionCache = null;
     $("legend").hidden = true;
@@ -1603,6 +2419,7 @@ window.WTV_MAP = async obj => {
     const dom = obj.missions.findIndex(m => /_dom$/.test(m.name));
     if (dom >= 0) $("misSel").value = dom;
     rebuildRedPicker();
+    syncHeliAltUI();
 
     if (pendingPresetData && pendingPresetData.data && pendingPresetData.data.map === obj.name) {
       const pd = pendingPresetData;
@@ -1610,7 +2427,8 @@ window.WTV_MAP = async obj => {
       applyPresetImmediate(pd.data);
       showToast(`已调取存档：${pd.name}`);
     } else {
-      centerMap(); remember(); updateAim(); setStatus("");
+      if (isHeli()) fitAirspace(); else centerMap();
+      remember(); updateAim(); setStatus("");
     }
 
     const entry = mapEntry(obj.name) || {};
@@ -1618,8 +2436,28 @@ window.WTV_MAP = async obj => {
       setStatus(`正在加载 ${mapTitle(obj.name)} 的${label}…`);
       loadScript(`/data/maps/${obj.name}.${file}.js`, `加载 ${obj.name}.${file}.js 失败`);
     }
+    if (obj.air && obj.air.h && obj.air.tex) {
+      loadAirspace(obj.name, obj.air);
+    }
   } catch (e) { setStatus(`地图加载失败：${e.message}`, true); }
 };
+
+function loadAirspace(name, air) {
+  const loadImg = src => new Promise((ok, bad) => { const im = new Image(); im.onload = () => ok(im); im.onerror = bad; im.src = resolveAssetUrl(src); });
+  Promise.all([fetchPayload(air.h), loadImg(air.tex)]).then(([rawBuf, im]) => {
+    if (!MAP || MAP.meta.name !== name) return;
+    const airH16 = new Uint16Array(rawBuf);
+    if (typeof air.h === "string" && air.h.endsWith(".hpred")) WT.unpredict(airH16, air.width);
+    if (airH16.length !== air.width * air.height) return;
+    const Tair = WT.makeTerrain(air, airH16);
+    MAP.airH16 = airH16;
+    MAP.Tair = Tair;
+    MAP.airWater = null;
+    MAP.airImg = composeAir(Tair, im);
+    surfaces();
+    updateAim();
+  }).catch(() => {});
+}
 
 function parseObjects(buf) {
   const dv = new DataView(buf);
@@ -1665,14 +2503,28 @@ function parseObjects(buf) {
 
 function surfaces() {
   if (!MAP) return;
-  if (!MAP.roof) { MAP.Tc = MAP.Ts = MAP.Tr = MAP.Tv = MAP.T; return; }
+  if (!MAP.roof) {
+    MAP.Tc = MAP.Ts = MAP.Tr = MAP.Tv = MAP.T;
+    MAP.T.tAir = MAP.Tair;
+    return;
+  }
   const { meta, h16, roof, veg } = MAP;
   MAP.Tr = WT.makeTerrain(meta, h16, [roof]);
   const both = WT.makeTerrain(meta, h16, [roof, veg]);
   MAP.Tv = both;
+  MAP.T.tAir = MAP.Tr.tAir = MAP.Tv.tAir = MAP.Tair;
   MAP.Tc = $("vegShots").checked ? both : MAP.Tr;
   MAP.Ts = $("vegSight").checked ? both : MAP.Tr;
 }
+
+window.WTV_PADS = async raw => {
+  try {
+    if (!raw || !raw.models) return;
+    const parsed = parseObjects(await fetchPayload(raw.models));
+    HELIPAD_LIB = { models: parsed.models, prefabs: raw.prefabs || {} };
+    draw();
+  } catch {}
+};
 
 window.WTV_OBJ = async (name, spec) => {
   try {
@@ -1710,9 +2562,20 @@ function compose() {
   ctx.drawImage(shade(T, true), 0, 0, cv.width, cv.height);
   return cv;
 }
-function waterLayer() {
-  if (MAP.water) return MAP.water;
-  const { w, h, H } = MAP.T, lvl = MAP.meta.water;
+function composeAir(Ta, im) {
+  if (!im) return shade(Ta, false);
+  const cv = document.createElement("canvas");
+  cv.width = im.naturalWidth || Ta.w; cv.height = im.naturalHeight || Ta.h;
+  const ctx = cv.getContext("2d");
+  ctx.drawImage(im, 0, 0, cv.width, cv.height);
+  ctx.globalCompositeOperation = "multiply";
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(shade(Ta, true), 0, 0, cv.width, cv.height);
+  return cv;
+}
+function waterLayerOf(T, prop) {
+  if (MAP[prop]) return MAP[prop];
+  const { w, h, H } = T, lvl = MAP.meta.water;
   const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
   const ctx = cv.getContext("2d"), img = ctx.createImageData(w, h), px = img.data;
   for (let j = 0; j < h; j++) {
@@ -1725,8 +2588,9 @@ function waterLayer() {
     }
   }
   ctx.putImageData(img, 0, 0);
-  return (MAP.water = cv);
+  return (MAP[prop] = cv);
 }
+function waterLayer() { return waterLayerOf(MAP.T, "water"); }
 function shade(T, grey) {
   const { w, h, H, cell, lo, hi } = T;
   const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
@@ -1761,22 +2625,32 @@ function formatShellOption(t, g, s) {
   const rm = s.rocket;
   let spdStr;
   if (rm && rm.force0 > 0 && rm.tFire0 > 0) {
-    spdStr = (rm.vStart || 0) > 1 ? `初速${Math.round(rm.vStart)}→${Math.round(s.v0)} m/s` : `助推${(rm.tFire0 + (rm.tFire1 || 0)).toFixed(1)}s→${Math.round(s.v0)} m/s`;
+    spdStr = (rm.vStart || 0) > 1 ? `初速${Math.round(rm.vStart)}→${Math.round(s.v0)} m/s` : `极速≈${Math.round(s.v0)} m/s`;
   } else {
     spdStr = `${Math.round(s.v0)} m/s`;
   }
-  const extra = `${rm && rm.guided ? " · 制导" : ""}${s.cxEst ? " · 估算风阻" : ""}`;
+  const limParts = [];
+  if (rm && rm.maxDist > 0) limParts.push(`${(rm.maxDist / 1000).toFixed(1)}km`);
+  if (rm && rm.tLife > 0) limParts.push(`${rm.tLife}s`);
+  const limStr = limParts.length ? ` · ${limParts.join("/")}自毁` : "";
+  const extra = `${rm && rm.guided ? " · 制导" : ""}${limStr}${s.cxEst ? " · 估算风阻" : ""}`;
   return `${t.guns.length > 1 ? gname + ": " : ""}${s.name} (${stype}) ${spdStr}${extra}`;
 }
 
 function pickTank(t, shellKey) {
+  const prevHeli = isHeli();
   TANK = t;
+  if (t.kind === "heli") lastHeliId = t.id; else lastGroundId = t.id;
+  if (vehCat === "heli" && t.kind !== "heli") { vehCat = "all"; syncVehTabsUI(); }
+  if (vehCat === "ground" && t.kind === "heli") { vehCat = "all"; syncVehTabsUI(); }
   const opts = [];
   t.guns.forEach((g, gi) => g.shells.forEach((s, si) => opts.push(
     `<option value="${gi}:${si}">${escHtml(formatShellOption(t, g, s))}</option>`)));
   $("shellSel").innerHTML = opts.join("");
   loadTank3D(t.model || "leopard_2a4");
   if (shellKey && [...$("shellSel").options].some(o => o.value === shellKey)) $("shellSel").value = shellKey;
+  if (isHeli() && !prevHeli) $("range").value = Math.max(8000, num("range", 2500));
+  syncHeliAltUI();
   pickShell();
 }
 function pickShell() {
@@ -1787,12 +2661,13 @@ function pickShell() {
   let pitch = g.pitch ? [g.pitch[0], g.pitch[1]] : [-10, 20];
   if (Math.abs(pitch[1] - pitch[0]) < 0.1) pitch = [pitch[0] - 15, pitch[1] + 25];
   $("pMin").value = pitch[0]; $("pMax").value = pitch[1];
+  if (isHeli() && SHELL && SHELL.maxDist > 0) $("range").value = Math.min(20000, Math.max(6500, Math.ceil(SHELL.maxDist / 500) * 500));
   remember(); updateAim();
 }
 $("shellSel").addEventListener("change", pickShell);
 for (const id of ["pMin", "pMax", "range", "gunH", "tgtH"]) $(id).addEventListener("change", updateAim);
 for (const id of ["showRedZone", "showProhib", "showCaps", "showWater", "showArc", "showGrid", "showBuild", "showTrees", "showTanks", "groundDetail", "detail3d"]) $(id).addEventListener("change", draw);
-for (const id of ["misSel", "gameMode"]) $(id).addEventListener("change", () => { hiddenRed.clear(); missionCache = null; rebuildRedPicker(); draw(); });
+for (const id of ["misSel", "gameMode"]) $(id).addEventListener("change", () => { hiddenRed.clear(); missionCache = null; rebuildRedPicker(); updateAim(); });
 
 const TANK3D = {}, TARGET_MODEL = "t_72a";
 function loadTank3D(model) {
@@ -2024,8 +2899,9 @@ const sy = z => mapCv.clientHeight / 2 - (z - view.cz) * view.s;
 const wx = px => (px - mapCv.clientWidth / 2) / view.s + view.cx;
 const wz = py => (mapCv.clientHeight / 2 - py) / view.s + view.cz;
 
-function centerMap() {
+function centerMap(forceBattle) {
   if (!MAP) return;
+  if (isHeli() && !forceBattle) { fitAirspace(); return; }
   const T = MAP.T, areas = activeAreas();
   const b = areas.find(a => a.kind === "battle");
   let x0 = T.ox, z0 = T.oz, x1 = T.x1, z1 = T.z1;
@@ -2037,13 +2913,91 @@ function centerMap() {
   draw();
 }
 
+function fitAirspace(focusPad) {
+  if (!MAP) return;
+  const T = MAP.T, areas = activeAreas();
+  const b = areas.find(a => a.kind === "battle");
+  let x0 = T.ox, z0 = T.oz, x1 = T.x1, z1 = T.z1;
+  if (b) {
+    const p = areaShape(b).poly;
+    x0 = Math.min(...p.map(q => q[0])); x1 = Math.max(...p.map(q => q[0]));
+    z0 = Math.min(...p.map(q => q[1])); z1 = Math.max(...p.map(q => q[1]));
+  }
+  const pts = [];
+  if (focusPad) {
+    pts.push([focusPad.x, focusPad.z]);
+  } else {
+    const pads = MAP.meta.helipads || [];
+    for (const pd of pads) pts.push([pd.x, pd.z]);
+  }
+  if (A) pts.push([A.x, A.z]);
+  if (B) pts.push([B.x, B.z]);
+  for (const [px, pz] of pts) {
+    if (px < x0) x0 = px; if (px > x1) x1 = px;
+    if (pz < z0) z0 = pz; if (pz > z1) z1 = pz;
+  }
+  const padM = Math.max(450, 0.10 * Math.max(x1 - x0, z1 - z0));
+  x0 -= padM; x1 += padM; z0 -= padM; z1 += padM;
+  const wrap = $("mapWrap");
+  view.cx = (x0 + x1) / 2; view.cz = (z0 + z1) / 2;
+  view.s = Math.max(0.004, 0.92 * Math.min(Math.max(200, wrap.clientWidth) / Math.max(100, x1 - x0), Math.max(200, wrap.clientHeight) / Math.max(100, z1 - z0)));
+  V3.fit(view.cx, view.cz, Math.max(x1 - x0, z1 - z0));
+  draw();
+}
+
+function captureZonesLabeled() {
+  const caps = activeAreas().filter(a => a.kind === "capture").slice().sort((a, b) => a.name.localeCompare(b.name));
+  const dedup = [];
+  for (const c of caps) {
+    const sh = areaShape(c);
+    if (!dedup.some(d => Math.hypot(d.x - sh.c[0], d.z - sh.c[1]) < 25)) {
+      dedup.push({ area: c, x: sh.c[0], z: sh.c[1], r: sh.r || 40 });
+    }
+  }
+  return dedup.map((item, idx) => {
+    let tag = String.fromCharCode(65 + idx);
+    let label = dedup.length === 1 ? "战区 A" : `战区 ${tag}`;
+    if (item.area.team === 1) { tag = "1"; label = "1队战区"; }
+    else if (item.area.team === 2) { tag = "2"; label = "2队战区"; }
+    return { ...item, tag, label };
+  });
+}
+
+function tankSpawnClusters() {
+  const spawns = activeAreas().filter(a => a.kind === "spawn" && (a.team === 1 || a.team === 2));
+  const groups = new Map();
+  for (const s of spawns) {
+    const idx = /spawn0?2/i.test(s.name) ? 2 : 1;
+    const k = `${s.team}_${idx}`;
+    if (!groups.has(k)) groups.set(k, { team: s.team, idx, xs: [], zs: [] });
+    groups.get(k).xs.push(s.tm[3][0]);
+    groups.get(k).zs.push(s.tm[3][2]);
+  }
+  const out = [];
+  for (const g of groups.values()) {
+    const x = g.xs.reduce((a, b) => a + b, 0) / g.xs.length;
+    const z = g.zs.reduce((a, b) => a + b, 0) / g.zs.length;
+    const multi = groups.has(`${g.team}_2`);
+    out.push({ team: g.team, x, z, label: `${g.team}队出生${multi ? "#" + g.idx : "点"}` });
+  }
+  return out.sort((a, b) => a.team - b.team || a.label.localeCompare(b.label));
+}
+
 function draw() {
   if (!highShown()) $("highOut").textContent = "";
   if (V3.mode !== "2d") { V3.update(); return; }
   const [W, H] = resize(mapCv), ctx = mapCtx;
-  ctx.fillStyle = "#0c0e10"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#0a0d10"; ctx.fillRect(0, 0, W, H);
   if (!MAP) return;
   const T = MAP.T, c = T.cell;
+  if (MAP.Tair && MAP.airImg) {
+    const Ta = MAP.Tair, ca = Ta.cell;
+    ctx.imageSmoothingEnabled = view.s < 1 / ca;
+    ctx.drawImage(MAP.airImg, sx(Ta.ox - ca / 2), sy(Ta.z1 + ca / 2), Ta.w * ca * view.s, Ta.h * ca * view.s);
+    if (MAP.meta.water != null && $("showWater").checked) {
+      ctx.drawImage(waterLayerOf(Ta, "airWater"), sx(Ta.ox - ca / 2), sy(Ta.z1 + ca / 2), Ta.w * ca * view.s, Ta.h * ca * view.s);
+    }
+  }
   ctx.imageSmoothingEnabled = view.s < 1 / c;
   ctx.drawImage(MAP.img, sx(T.ox - c / 2), sy(T.z1 + c / 2), T.w * c * view.s, T.h * c * view.s);
   if (MAP.meta.water != null && $("showWater").checked) ctx.drawImage(waterLayer(), sx(T.ox - c / 2), sy(T.z1 + c / 2), T.w * c * view.s, T.h * c * view.s);
@@ -2054,9 +3008,15 @@ function draw() {
     const o = overlay;
     ctx.drawImage(o.cv, sx(o.x0), sy(o.z0 + o.size), o.size * view.s, o.size * view.s);
   }
-  if ($("showGrid").checked && view.s > 0.05) {
+  // Subtle frame around high-res ground terrain mesh when zoomed out to airspace
+  if (view.s < 0.16 || isHeli()) {
+    ctx.strokeStyle = "rgba(143,212,255,0.24)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(sx(T.ox), sy(T.z1), (T.x1 - T.ox) * view.s, (T.z1 - T.oz) * view.s);
+  }
+  if ($("showGrid").checked && view.s > 0.005) {
     ctx.strokeStyle = "rgba(255,255,255,0.08)"; ctx.lineWidth = 1; ctx.beginPath();
-    const step = view.s > 0.4 ? 100 : 500;
+    const step = view.s > 0.4 ? 100 : view.s > 0.09 ? 500 : 1000;
     for (let x = Math.ceil(wx(0) / step) * step; x < wx(W); x += step) { ctx.moveTo(sx(x), 0); ctx.lineTo(sx(x), H); }
     for (let z = Math.ceil(wz(H) / step) * step; z < wz(0); z += step) { ctx.moveTo(0, sy(z)); ctx.lineTo(W, sy(z)); }
     ctx.stroke();
@@ -2071,6 +3031,126 @@ function draw() {
     else ctx.arc(sx(sh.c[0]), sy(sh.c[1]), Math.max(3, sh.r * view.s), 0, 2 * Math.PI);
     if (a.kind === "capture") { ctx.fillStyle = "rgba(242,209,75,0.15)"; ctx.fill(); }
     ctx.stroke();
+  }
+  // Capture zone letter badges (A / B / C)
+  if ($("showCaps").checked) {
+    ctx.font = "bold 11px " + getComputedStyle(document.body).fontFamily;
+    for (const cz of captureZonesLabeled()) {
+      const px = sx(cz.x), py = sy(cz.z);
+      if (px < -20 || px > W + 20 || py < -20 || py > H + 20) continue;
+      ctx.fillStyle = "rgba(20,18,8,0.82)";
+      ctx.fillRect(px - 8, py - 8, 16, 15);
+      ctx.fillStyle = "#ffe066";
+      ctx.fillText(cz.tag, px - 4, py + 3.5);
+    }
+  }
+  // Helipads (H1 near / H2 far for Team 1 & Team 2) + zoomed-in 1m airfield apron, runway & 16 [H] spawn pads
+  const pads = (MAP.meta && MAP.meta.helipads) || [];
+  if (pads.length && ($("showCaps").checked || isHeli())) {
+    ctx.font = "bold 11px " + getComputedStyle(document.body).fontFamily;
+    for (const pd of pads) {
+      const px = sx(pd.x), py = sy(pd.z);
+      const [ux, uz] = WT.padBasis(pd), [hx, hz] = WT.padExtents(pd);
+      const maxPix = Math.hypot(hx, hz) * view.s + 60;
+      if (px < -maxPix || px > W + maxPix || py < -maxPix || py > H + maxPix) continue;
+      const col = pd.team === 1 ? "#4fb3e8" : "#f09648";
+      const wpt = (lx, lz) => [sx(pd.x + lx * ux - lz * uz), sy(pd.z + lx * uz + lz * ux)];
+
+      if (hx * view.s >= 9) {
+        const a0 = wpt(-hx, -hz), a1 = wpt(hx, -hz), a2 = wpt(hx, hz), a3 = wpt(-hx, hz);
+        ctx.fillStyle = "rgba(136,142,136,0.18)";
+        ctx.strokeStyle = pd.team === 1 ? "rgba(79,179,232,0.55)" : "rgba(240,150,72,0.55)";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(...a0); ctx.lineTo(...a1); ctx.lineTo(...a2); ctx.lineTo(...a3); ctx.closePath();
+        ctx.fill(); ctx.stroke();
+      }
+      if (hx * view.s >= 26) {
+        const pf = HELIPAD_LIB && HELIPAD_LIB.prefabs && (HELIPAD_LIB.prefabs[String(pd.uc || "").toLowerCase()] || HELIPAD_LIB.prefabs.dynhelipad_beton_a_usa);
+        const rwy = pf && pf.rwy ? pf.rwy : Math.max(80, hx - 14);
+        const r0 = wpt(-rwy, -13.5), r1 = wpt(rwy, -13.5), r2 = wpt(rwy, 13.5), r3 = wpt(-rwy, 13.5);
+        ctx.fillStyle = "rgba(32,36,42,0.82)";
+        ctx.beginPath(); ctx.moveTo(...r0); ctx.lineTo(...r1); ctx.lineTo(...r2); ctx.lineTo(...r3); ctx.closePath(); ctx.fill();
+        ctx.save();
+        ctx.strokeStyle = "rgba(238,242,246,0.62)"; ctx.lineWidth = 1; ctx.setLineDash([5, 5]);
+        const c0 = wpt(-rwy + 6, 0), c1 = wpt(rwy - 6, 0);
+        ctx.beginPath(); ctx.moveTo(...c0); ctx.lineTo(...c1); ctx.stroke();
+        ctx.restore();
+        if (pf && pf.spawns) {
+          for (const [sxL, szL] of pf.spawns) {
+            if (Math.hypot(sxL, szL) <= 16) continue;
+            const s0 = wpt(sxL - 7.2, szL - 7.2), s1 = wpt(sxL + 7.2, szL - 7.2), s2 = wpt(sxL + 7.2, szL + 7.2), s3 = wpt(sxL - 7.2, szL + 7.2);
+            ctx.fillStyle = "rgba(58,63,70,0.88)";
+            ctx.strokeStyle = "rgba(238,196,62,0.85)";
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(...s0); ctx.lineTo(...s1); ctx.lineTo(...s2); ctx.lineTo(...s3); ctx.closePath();
+            ctx.fill(); ctx.stroke();
+          }
+        }
+      }
+
+      const yawR = (pd.yaw || 0) * WT.DEG;
+      // Runway orientation arrow
+      ctx.strokeStyle = col; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(px - Math.sin(yawR) * 14, py + Math.cos(yawR) * 14);
+      ctx.lineTo(px + Math.sin(yawR) * 18, py - Math.cos(yawR) * 18);
+      ctx.stroke();
+      // Helipad square [H]
+      ctx.fillStyle = pd.team === 1 ? "rgba(14,34,48,0.92)" : "rgba(46,24,12,0.92)";
+      ctx.strokeStyle = col; ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.rect(px - 9, py - 9, 18, 18); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = col;
+      ctx.fillText(pd.far ? "H2" : "H1", px - 7, py + 4);
+      ctx.fillStyle = "rgba(10,13,16,0.78)";
+      const lbl = `${pd.short} (${Math.round(pd.y)}m)`;
+      const tw = ctx.measureText(lbl).width;
+      ctx.fillRect(px + 12, py - 8, tw + 8, 15);
+      ctx.fillStyle = col;
+      ctx.fillText(lbl, px + 16, py + 3);
+    }
+  }
+  // Helicopter tactical range rings & rocket self-destruct limit circle around A
+  if (isHeli() && A) {
+    const ax = sx(A.x), ay = sy(A.z);
+    ctx.save();
+    ctx.font = "10.5px ui-monospace,Consolas,monospace";
+    for (let rk = 2000; rk <= 10000; rk += 2000) {
+      const rp = rk * view.s;
+      if (rp < 28 || rp > Math.max(W, H) * 1.8) continue;
+      ctx.strokeStyle = "rgba(143,212,255,0.16)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 5]);
+      ctx.beginPath(); ctx.arc(ax, ay, rp, 0, 2 * Math.PI); ctx.stroke();
+      ctx.fillStyle = "rgba(143,212,255,0.55)";
+      ctx.fillText(`${rk / 1000}km`, ax + 4, ay - rp + 11);
+    }
+    if (activeHeliEnv && activeHeliEnv.maxS > 200) {
+      const rMax = activeHeliEnv.maxS * view.s;
+      if (rMax > 20) {
+        ctx.strokeStyle = "rgba(240,168,48,0.72)";
+        ctx.lineWidth = 1.6;
+        ctx.setLineDash([7, 5]);
+        ctx.beginPath(); ctx.arc(ax, ay, rMax, 0, 2 * Math.PI); ctx.stroke();
+        ctx.fillStyle = "#ffd073";
+        const rsn = activeHeliEnv.reason === "time" ? `${activeHeliEnv.tLife}s自毁极限` : activeHeliEnv.reason === "dist" ? `自毁射程极限` : `最大射程`;
+        ctx.fillText(`${rsn} ${(activeHeliEnv.maxS / 1000).toFixed(2)}km`, ax + 6, ay + rMax - 5);
+      }
+    }
+    ctx.restore();
+  }
+  // Pinned custom targets
+  if (pinnedTargets.length) {
+    ctx.font = "bold 11px " + getComputedStyle(document.body).fontFamily;
+    pinnedTargets.forEach((pt, idx) => {
+      const px = sx(pt.x), py = sy(pt.z);
+      if (px < -30 || px > W + 30 || py < -30 || py > H + 30) return;
+      ctx.fillStyle = "#ff9f43"; ctx.strokeStyle = "#000"; ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(px, py - 6); ctx.lineTo(px + 6, py); ctx.lineTo(px, py + 6); ctx.lineTo(px - 6, py); ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#ffd8a8";
+      ctx.fillText(`📌${idx + 1}`, px + 8, py - 4);
+    });
   }
   // Numbered red zone labels
   if ($("showProhib").checked) {
@@ -2098,9 +3178,9 @@ function draw() {
   if (A && heading != null) {
     const ax = sx(A.x), ay = sy(A.z);
     ctx.strokeStyle = "#ffd073"; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax + Math.sin(heading) * 16, ay - Math.cos(heading) * 16); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax + Math.sin(heading) * 18, ay - Math.cos(heading) * 18); ctx.stroke();
   }
-  for (const [p, label, colr] of [[A, "A", "#e0a33a"], [B, "B", "#4fb3e8"]]) {
+  for (const [p, label, colr] of [[A, isHeli() ? `A (武直 +${Math.round(heliAgl)}m)` : "A", "#e0a33a"], [B, "B", "#4fb3e8"]]) {
     if (!p) continue;
     ctx.fillStyle = colr; ctx.strokeStyle = "#000"; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(sx(p.x), sy(p.z), 6, 0, 7); ctx.fill(); ctx.stroke();
@@ -2115,23 +3195,58 @@ function draw() {
   }
 }
 
+function canPlaceAt(p, isTargetB) {
+  if (!MAP) return false;
+  if (MAP.T.inside(p.x, p.z)) return true;
+  if (!isHeli()) return false;
+  // In Helicopter Mode, allow placing A (and B) anywhere within 30 km airspace around map
+  const cx = 0.5 * (MAP.T.ox + MAP.T.x1), cz = 0.5 * (MAP.T.oz + MAP.T.z1);
+  return Math.abs(p.x - cx) <= 30000 && Math.abs(p.z - cz) <= 30000;
+}
+
+function maybeSnapHelipad(p, pxScreen, pyScreen) {
+  if (!isHeli() || !MAP || !MAP.meta.helipads) return p;
+  for (const pd of MAP.meta.helipads) {
+    if (view.s >= 0.22 && HELIPAD_LIB && HELIPAD_LIB.prefabs) {
+      const pf = HELIPAD_LIB.prefabs[String(pd.uc || "").toLowerCase()];
+      if (pf && pf.spawns) {
+        const [ux, uz] = WT.padBasis(pd);
+        for (const [sxL, szL] of pf.spawns) {
+          const wxS = pd.x + sxL * ux - szL * uz, wzS = pd.z + sxL * uz + szL * ux;
+          if (Math.hypot(sx(wxS) - pxScreen, sy(wzS) - pyScreen) <= 12) {
+            return { x: wxS, z: wzS, pad: pd };
+          }
+        }
+      }
+    }
+    if (Math.hypot(sx(pd.x) - pxScreen, sy(pd.z) - pyScreen) <= 16) {
+      return { x: pd.x, z: pd.z, pad: pd };
+    }
+  }
+  return p;
+}
+
 function placePoint(p, btn, fromTouch) {
   if (fromTouch && touchPlaceMode === "pan") return;
   const effMode = fromTouch && btn === 2 ? "B" : touchPlaceMode;
+  const placingA = effMode === "A" || (effMode === "auto" && btn === 0);
+  if (!canPlaceAt(p, !placingA)) return;
   if (effMode === "A") {
     const firstB = !B;
-    A = p;
-    if (B) heading = Math.atan2(B.x - A.x, B.z - A.z); else if (heading == null) heading = 0;
+    A = { x: p.x, z: p.z };
+    if (B) heading = Math.atan2(B.x - A.x, B.z - A.z); else if (p.pad) heading = (p.pad.yaw || 0) * WT.DEG; else if (heading == null) heading = 0;
+    syncHeliAltUI();
     if (fromTouch && firstB) { touchPlaceMode = "B"; syncPlaceModeUI(); showToast("已放置 A 点，再点一次地图放置目标 B"); }
   } else if (effMode === "B") {
-    B = p;
+    B = { x: p.x, z: p.z };
     if (A && heading == null) heading = Math.atan2(B.x - A.x, B.z - A.z);
   } else if (btn === 2) {
-    B = p;
+    B = { x: p.x, z: p.z };
     if (A && heading == null) heading = Math.atan2(B.x - A.x, B.z - A.z);
   } else if (btn === 0) {
-    A = p;
-    if (B) heading = Math.atan2(B.x - A.x, B.z - A.z); else if (heading == null) heading = 0;
+    A = { x: p.x, z: p.z };
+    if (B) heading = Math.atan2(B.x - A.x, B.z - A.z); else if (p.pad) heading = (p.pad.yaw || 0) * WT.DEG; else if (heading == null) heading = 0;
+    syncHeliAltUI();
   }
   updateAim();
 }
@@ -2147,8 +3262,9 @@ addEventListener("mousemove", e => {
   const r = mapCv.getBoundingClientRect();
   if (MAP && V3.mode === "2d" && e.target === mapCv) {
     const x = wx(e.clientX - r.left), z = wz(e.clientY - r.top);
-    $("hud").textContent = `X ${x.toFixed(1)}  Z ${z.toFixed(1)}  高程 ${MAP.Tr.heightAt(x, z).toFixed(2)} m` +
-      (A ? `   距 A ${Math.hypot(x - A.x, z - A.z).toFixed(1)} m` : "");
+    const gh = groundAt(MAP.Tr, x, z);
+    $("hud").textContent = `X ${x.toFixed(1)}  Z ${z.toFixed(1)}  地面 ${gh.toFixed(1)} m` +
+      (A ? `   距 A ${Math.hypot(x - A.x, z - A.z).toFixed(0)} m` : "");
   }
   if (!drag2d) return;
   const dx = e.clientX - drag2d.x, dy = e.clientY - drag2d.y;
@@ -2158,9 +3274,10 @@ addEventListener("mousemove", e => {
 addEventListener("mouseup", e => {
   if (Date.now() - lastTouchEnd2d < 500) { drag2d = null; return; }
   if (drag2d && !drag2d.moved && MAP && e.target === mapCv) {
-    const r = mapCv.getBoundingClientRect();
-    const p = { x: wx(e.clientX - r.left), z: wz(e.clientY - r.top) };
-    if (MAP.T.inside(p.x, p.z)) placePoint(p, drag2d.btn, false);
+    const r = mapCv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+    let p = { x: wx(px), z: wz(py) };
+    if (drag2d.btn === 0) p = maybeSnapHelipad(p, px, py);
+    placePoint(p, drag2d.btn, false);
   }
   drag2d = null;
 });
@@ -2169,7 +3286,7 @@ mapCv.addEventListener("wheel", e => {
   e.preventDefault();
   const r = mapCv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
   const x = wx(px), z = wz(py);
-  view.s = Math.min(40, Math.max(0.01, view.s * Math.exp(-e.deltaY * 0.0015)));
+  view.s = Math.min(40, Math.max(0.004, view.s * Math.exp(-e.deltaY * 0.0015)));
   view.cx = x - (px - mapCv.clientWidth / 2) / view.s; view.cz = z + (py - mapCv.clientHeight / 2) / view.s;
   draw();
 }, { passive: false });
@@ -2187,9 +3304,9 @@ mapCv.addEventListener("wheel", e => {
       tState = { kind: 1, x0: px, y0: py, cx0: view.cx, cz0: view.cz, moved: false, longFired: false };
       lpTimer = setTimeout(() => {
         if (tState && tState.kind === 1 && !tState.moved && MAP) {
-          tState.longFired = true;
           const p = { x: wx(px), z: wz(py) };
-          if (MAP.T.inside(p.x, p.z)) {
+          if (canPlaceAt(p, true)) {
+            tState.longFired = true;
             if (navigator.vibrate) navigator.vibrate(18);
             placePoint(p, 2, true);
             showToast("已长按放置目标 B");
@@ -2216,7 +3333,7 @@ mapCv.addEventListener("wheel", e => {
         view.cx = tState.cx0 - dx / view.s;
         view.cz = tState.cz0 + dy / view.s;
         const x = wx(px), z = wz(py);
-        $("hud").textContent = `X ${x.toFixed(0)} Z ${z.toFixed(0)} 高 ${MAP.Tr.heightAt(x, z).toFixed(1)}m` +
+        $("hud").textContent = `X ${x.toFixed(0)} Z ${z.toFixed(0)} 高 ${groundAt(MAP.Tr, x, z).toFixed(1)}m` +
           (A ? ` 距A ${Math.hypot(x - A.x, z - A.z).toFixed(0)}m` : "");
         draw();
       }
@@ -2229,7 +3346,7 @@ mapCv.addEventListener("wheel", e => {
         tState = { kind: 2, mx, my, dist, wx0: wx(mx), wz0: wz(my), s0: view.s, moved: true };
         return;
       }
-      view.s = Math.min(40, Math.max(0.01, tState.s0 * (dist / tState.dist)));
+      view.s = Math.min(40, Math.max(0.004, tState.s0 * (dist / tState.dist)));
       view.cx = tState.wx0 - (mx - mapCv.clientWidth / 2) / view.s;
       view.cz = tState.wz0 + (my - mapCv.clientHeight / 2) / view.s;
       draw();
@@ -2251,8 +3368,9 @@ mapCv.addEventListener("wheel", e => {
           lastTapTime = 0;
         } else {
           lastTapTime = now; lastTapX = tState.x0; lastTapY = tState.y0;
-          const p = { x: wx(tState.x0), z: wz(tState.y0) };
-          if (MAP.T.inside(p.x, p.z)) placePoint(p, 0, true);
+          let p = { x: wx(tState.x0), z: wz(tState.y0) };
+          if (touchPlaceMode === "A" || touchPlaceMode === "auto") p = maybeSnapHelipad(p, tState.x0, tState.y0);
+          placePoint(p, 0, true);
         }
       }
       tState = null;
@@ -2266,10 +3384,10 @@ mapCv.addEventListener("wheel", e => {
 })();
 
 addEventListener("resize", () => { syncMobViewUI(); draw(); drawProfile(); });
-$("btnCenter").onclick = centerMap;
+$("btnCenter").onclick = () => centerMap();
 $("btnClear").onclick = () => { overlay = null; $("legend").hidden = true; draw(); };
 
-// W A S D + Virtual Mobile D-Pad Tank Driving
+// W A S D + Q/E + Virtual Mobile D-Pad Driving / Helicopter Hover Translation
 const driveKeys = new Set();
 let driveRaf = null, driveLast = 0;
 function startDriveLoop() {
@@ -2282,19 +3400,27 @@ function driveStep(ts) {
   if (heading == null) heading = B ? Math.atan2(B.x - A.x, B.z - A.z) : 0;
   const turn = (driveKeys.has("d") || driveKeys.has("arrowright") ? 1 : 0) - (driveKeys.has("a") || driveKeys.has("arrowleft") ? 1 : 0);
   const fwd = (driveKeys.has("w") || driveKeys.has("arrowup") ? 1 : 0) - (driveKeys.has("s") || driveKeys.has("arrowdown") ? 1 : 0);
-  if (turn) heading += turn * (45 * WT.DEG) * dt;
+  const climb = (driveKeys.has("e") ? 1 : 0) - (driveKeys.has("q") ? 1 : 0);
+  if (turn) heading += turn * ((isHeli() ? 65 : 45) * WT.DEG) * dt;
   if (fwd) {
-    const spd = fwd > 0 ? 12.0 : -5.0;
-    const nx = Math.min(MAP.T.x1, Math.max(MAP.T.ox, A.x + Math.sin(heading) * spd * dt));
-    const nz = Math.min(MAP.T.z1, Math.max(MAP.T.oz, A.z + Math.cos(heading) * spd * dt));
-    A = { x: nx, z: nz };
+    const spd = isHeli() ? (fwd > 0 ? 55.0 : -35.0) : (fwd > 0 ? 12.0 : -5.0);
+    const rx = A.x + Math.sin(heading) * spd * dt, rz = A.z + Math.cos(heading) * spd * dt;
+    if (isHeli()) {
+      A = { x: rx, z: rz };
+    } else {
+      A = { x: Math.min(MAP.T.x1, Math.max(MAP.T.ox, rx)), z: Math.min(MAP.T.z1, Math.max(MAP.T.oz, rz)) };
+    }
   }
+  if (isHeli() && climb) {
+    heliAgl = Math.max(0, Math.min(4000, heliAgl + climb * 25.0 * dt));
+  }
+  if (isHeli()) syncHeliAltUI();
   updateAim();
   driveRaf = requestAnimationFrame(driveStep);
 }
 $("mapWrap").addEventListener("keydown", e => {
   const k = e.key.toLowerCase();
-  if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) {
+  if (["w", "a", "s", "d", "q", "e", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) {
     if (!A) return;
     e.preventDefault();
     driveKeys.add(k);
@@ -2309,7 +3435,7 @@ $("mobPad").querySelectorAll("button[data-dkey]").forEach(btn => {
   const k = btn.dataset.dkey;
   const press = e => {
     e.preventDefault();
-    if (!A) { showToast("请先点选地图放置 A 点战车"); return; }
+    if (!A) { showToast("请先点选地图放置开火点 A"); return; }
     btn.classList.add("act");
     driveKeys.add(k);
     startDriveLoop();
@@ -2325,66 +3451,311 @@ $("mobPad").querySelectorAll("button[data-dkey]").forEach(btn => {
   btn.addEventListener("pointerleave", release);
 });
 
-// ------------------------------------------------------------------ Aim A -> B & Side Profile
+// ------------------------------------------------------------------ Aim A -> B, Helicopter 3-Tier Firing Tables & Side Profile
+const COMPASS_DIRS = ["正北 N", "北偏东 NNE", "东北 NE", "东偏北 ENE", "正东 E", "东偏南 ESE", "东南 SE", "南偏东 SSE", "正南 S", "南偏西 SSW", "西南 SW", "西偏南 WSW", "正西 W", "西偏北 WNW", "西北 NW", "北偏西 NNW"];
+const compassName = az => COMPASS_DIRS[Math.round((((az % 360) + 360) % 360) / 22.5) % 16];
+
+function calcPitchSpan(sh, elevRad, yA, yB, vAir) {
+  const findCross = degOff => {
+    const tr = WT.simulate(sh, elevRad + degOff * WT.DEG, yA, 30000, { yFloor: yB - 200, vAir });
+    const S = tr.s, Y = tr.y;
+    for (let k = S.length - 1; k >= 1; k--) {
+      if ((Y[k] <= yB && Y[k - 1] >= yB) || (Y[k] >= yB && Y[k - 1] <= yB)) {
+        const w = (yB - Y[k - 1]) / ((Y[k] - Y[k - 1]) || 1);
+        return S[k - 1] + (S[k] - S[k - 1]) * w;
+      }
+    }
+    return NaN;
+  };
+  const sLo = findCross(-0.5), sHi = findCross(+0.5);
+  if (isFinite(sLo) && isFinite(sHi)) return Math.abs(sHi - sLo);
+  return NaN;
+}
+
+function solveTargetFromHeli(tx, tz, p, yA, step, fan) {
+  const gT = groundAt(MAP.Tr, tx, tz), yT = gT + p.tgtH;
+  const d = Math.hypot(tx - A.x, tz - A.z), dy = yT - yA;
+  const dir = d > 1e-6 ? [(tx - A.x) / d, (tz - A.z) / d] : [0, 1];
+  const az = ((Math.atan2(dir[0], dir[1]) / WT.DEG) + 360) % 360;
+  if (d <= 1) return { d, dy, yT, gT, az, sols: [] };
+  const rawSols = fan ? fan.solve(SHELL, d, dy) : WT.solveExact(SHELL, d, dy, yA, p.pMin, p.pMax, { vAir: p.vAir }).map(e => [e, NaN]);
+  const collideStep = Math.max(step, 3);
+  const sols = rawSols.map(([e, tofFast]) => {
+    const tr = WT.simulate(SHELL, e, yA, d + 2, { dt: 0.008, vAir: p.vAir });
+    const blocked = WT.pathBlocked(MAP.Tc, A, dir, tr, d, collideStep);
+    const whatIdx = blocked != null && MAP.Tc.inside(A.x + dir[0] * blocked, A.z + dir[1] * blocked) ? MAP.Tc.srcAt(A.x + dir[0] * blocked, A.z + dir[1] * blocked) : 0;
+    return { e, tr, t: isFinite(tofFast) ? tofFast : WT.atDist(tr, "t", d), v: WT.atDist(tr, "v", d), blocked, by: blocked == null ? "" : ["山体地形", "建筑/巨石", "树木/灌木"][whatIdx] };
+  });
+  return { d, dy, yT, gT, az, dir, sols };
+}
+
+function renderHeliFiringTables(p, gA, yA, step) {
+  const mil = r => (r * 3200 / Math.PI).toFixed(0);
+  const rm = SHELL.rocket || {};
+  const tLife = rm.tLife > 0 ? rm.tLife : 0;
+  const maxD = rm.maxDist > 0 ? rm.maxDist : (SHELL.maxDist > 0 ? SHELL.maxDist : 0);
+
+  // Build ONE TrajFan for all targets, range ladder, +/-0.5 deg span and max envelope (< 2 ms total!)
+  const refGround = B ? groundAt(MAP.Tr, B.x, B.z) + p.tgtH : 0.5 * (MAP.T.lo + MAP.T.hi) + p.tgtH;
+  const floorY = Math.min(refGround, MAP.T.lo) - 180;
+  const fan = WT.buildTrajFan(SHELL, yA, p.pMin, p.pMax, p.vAir, 13000, floorY);
+  activeHeliEnv = fan.envelope(refGround);
+
+  if (!A) {
+    $("heliMainHud").innerHTML = `<div class="heli-meta">请先点击上方<b>「1队/2队 停机坪 H1/H2」</b>按钮一键就位，或在地图任意空域左键放置直升机 A。</div>`;
+    $("heliTacTbl").querySelector("tbody").innerHTML = `<tr><td colspan="6" class="note" style="text-align:center;padding:10px">放置直升机 A 后自动生成全图战区射表</td></tr>`;
+    $("heliLadderTbl").querySelector("tbody").innerHTML = "";
+    return;
+  }
+
+  // 1. Tier 1: Main Cockpit HUD Readout for B
+  if (!B || !aim) {
+    $("heliMainHud").innerHTML = `<div class="heli-meta">直升机已就位（离地 <b>+${Math.round(heliAgl)}m</b> / 海拔 <b>${Math.round(yA)}m</b>）。<br>请在地图右键标定目标 B，或直接点击下方<b>《本局关键点位射表》</b>中的任意战区！</div>`;
+  } else {
+    const az = ((Math.atan2(aim.dir[0], aim.dir[1]) / WT.DEG) + 360) % 360;
+    const bestSol = aim.sols.find(s => s.blocked == null) || aim.sols[0] || null;
+    if (bestSol) {
+      const pitchDeg = bestSol.e / WT.DEG;
+      const sign = pitchDeg >= 0 ? "+" : "";
+      const span05 = calcPitchSpan(SHELL, bestSol.e, yA, aim.yB, p.vAir);
+      const dispRad = rm.disp > 0 ? (aim.d * Math.tan(rm.disp * 0.5 * WT.DEG)) : 0;
+      let lifeHtml = `${bestSol.t.toFixed(2)} s`;
+      if (tLife > 0) {
+        const rem = Math.max(0, tLife - bestSol.t);
+        const cls = rem < 1.5 ? "bad" : "ok";
+        lifeHtml += ` <span class="${cls}">(距${tLife}s自毁余 ${rem.toFixed(1)}s)</span>`;
+      } else if (maxD > 0) {
+        const slant = Math.hypot(aim.d, aim.dy);
+        const remD = Math.max(0, maxD - slant);
+        lifeHtml += ` <span class="${remD < 300 ? "bad" : "ok"}">(余 ${(remD / 1000).toFixed(2)}km)</span>`;
+      }
+      const stHtml = bestSol.blocked == null
+        ? `<span class="ok">● 弹道畅通可命中</span>（落速 ${bestSol.v.toFixed(0)} m/s）`
+        : `<span class="bad">✕ 在 ${bestSol.blocked.toFixed(0)} m 处被${escHtml(bestSol.by)}遮挡</span>`;
+      $("heliMainHud").innerHTML = `
+        <div class="hud-pair">
+          <div class="hud-metric">
+            <span class="hud-lbl">罗盘方位角 AZIMUTH</span>
+            <span class="hud-val">${az.toFixed(1)}°</span>
+            <span class="hud-sub">${compassName(az)}</span>
+          </div>
+          <div class="hud-metric pitch">
+            <span class="hud-lbl">机头俯仰角 PITCH</span>
+            <span class="hud-val">${sign}${pitchDeg.toFixed(2)}°</span>
+            <span class="hud-sub">${pitchDeg >= 0 ? "抬头" : "压头"} · ${mil(bestSol.e)} 密位</span>
+          </div>
+        </div>
+        <div class="heli-meta">
+          <div>状态：${stHtml}</div>
+          <div>距离：水平 <b>${aim.d.toFixed(0)} m</b> · 斜距 ${Math.hypot(aim.d, aim.dy).toFixed(0)} m · 高差 ${aim.dy >= 0 ? "+" : ""}${aim.dy.toFixed(0)} m</div>
+          <div>飞行：${lifeHtml}${heliSpdKmh > 0 ? ` · 空速 ${Math.round(heliSpdKmh)}km/h` : " · 悬停"}</div>
+          <div>齐射：${isFinite(span05) ? `<b>±0.5° 仰角覆盖 ≈ ${Math.round(span05)} m</b>（±${Math.round(span05 / 2)}m）` : "—"}${dispRad > 0 ? ` · 散布 ±${Math.round(dispRad)}m` : ""}</div>
+          ${rm.guided ? `<div class="note" style="color:var(--acc2)">提示：当前选用制导导弹，游戏内沿瞄准线制导飞行</div>` : ""}
+        </div>`;
+    } else {
+      let failMsg = `在俯仰范围 ${p.pMin}°..${p.pMax}° 内无法到达目标（水平距离 ${aim.d.toFixed(0)} m）。`;
+      if (activeHeliEnv && activeHeliEnv.maxS > 0 && aim.d > activeHeliEnv.maxS) {
+        const shortBy = Math.round(aim.d - activeHeliEnv.maxS);
+        if (activeHeliEnv.reason === "time") {
+          failMsg = `【超距半空自毁】${escHtml(SHELL.name)} 飞满 ${activeHeliEnv.tLife} 秒强制自爆，当前高度/空速最远可达约 ${Math.round(activeHeliEnv.maxS)} m（差 ${shortBy} m；请前移靠近或提高平飞速度）。`;
+        } else if (activeHeliEnv.reason === "dist") {
+          failMsg = `【超距半空自毁】${escHtml(SHELL.name)} 达到 ${(activeHeliEnv.maxDist / 1000).toFixed(1)} km 最大自毁距离，当前最远可达约 ${Math.round(activeHeliEnv.maxS)} m（差 ${shortBy} m）。`;
+        }
+      }
+      $("heliMainHud").innerHTML = `
+        <div class="hud-pair">
+          <div class="hud-metric">
+            <span class="hud-lbl">罗盘方位角 AZIMUTH</span>
+            <span class="hud-val">${az.toFixed(1)}°</span>
+            <span class="hud-sub">${compassName(az)}</span>
+          </div>
+          <div class="hud-metric pitch">
+            <span class="hud-lbl">机头俯仰角 PITCH</span>
+            <span class="hud-val" style="color:var(--bad);font-size:16px">不可达</span>
+            <span class="hud-sub">距离 ${aim.d.toFixed(0)} m</span>
+          </div>
+        </div>
+        <div class="heli-meta"><span class="bad">${failMsg}</span></div>`;
+    }
+  }
+
+  // 2. Tier 2: Multi-Target Tactical Firing Table (Capture Zones + Enemy/Allied Tank Spawns + Pinned + Current B)
+  const rows = [];
+  if (B) rows.push({ kind: "cur", label: "🎯 当前标点 B", x: B.x, z: B.z });
+  for (const cz of captureZonesLabeled()) rows.push({ kind: "cap", label: `🚩 ${cz.label}`, x: cz.x, z: cz.z });
+  for (const sp of tankSpawnClusters()) rows.push({ kind: "spw", label: `🛡️ ${sp.label}`, x: sp.x, z: sp.z });
+  pinnedTargets.forEach((pt, idx) => rows.push({ kind: "pin", pinId: pt.id, label: `📌 ${pt.name || ("标点#" + (idx + 1))}`, x: pt.x, z: pt.z }));
+
+  $("heliTacTbl").querySelector("tbody").innerHTML = rows.map((r, ri) => {
+    const res = solveTargetFromHeli(r.x, r.z, p, yA, step, fan);
+    const clear = res.sols.find(s => s.blocked == null);
+    const anySol = clear || res.sols[0];
+    const isCur = B && Math.hypot(B.x - r.x, B.z - r.z) < 3;
+    const delBtn = r.kind === "pin" ? `<button type="button" class="pin-del" data-del-pin="${r.pinId}" title="移除该标定点">×</button>` : "";
+    if (!anySol) {
+      const tag = activeHeliEnv && res.d > activeHeliEnv.maxS && (activeHeliEnv.reason === "time" || activeHeliEnv.reason === "dist") ? "自毁超距" : "超射程";
+      return `<tr class="clickable ${isCur ? "cur-row" : ""}" data-tx="${r.x.toFixed(2)}" data-tz="${r.z.toFixed(2)}">
+        <td>${escHtml(r.label)}${delBtn}</td>
+        <td class="az-col">${res.az.toFixed(1)}°</td>
+        <td class="bad">—</td>
+        <td>${Math.round(res.d)}m</td>
+        <td>—</td>
+        <td><span class="bad">${tag}</span></td>
+      </tr>`;
+    }
+    const elDeg = anySol.e / WT.DEG;
+    const st = clear ? `<span class="ok">可达</span>` : `<span class="bad">${escHtml(anySol.by.slice(0, 2))}挡</span>`;
+    return `<tr class="clickable ${isCur ? "cur-row" : ""}" data-tx="${r.x.toFixed(2)}" data-tz="${r.z.toFixed(2)}">
+      <td>${escHtml(r.label)}${delBtn}</td>
+      <td class="az-col">${res.az.toFixed(1)}°</td>
+      <td class="el-col">${elDeg >= 0 ? "+" : ""}${elDeg.toFixed(2)}°</td>
+      <td>${Math.round(res.d)}m</td>
+      <td>${anySol.t.toFixed(1)}s</td>
+      <td>${st}</td>
+    </tr>`;
+  }).join("");
+
+  // 3. Tier 3: Range Ladder Table (every 250m at reference battlefield ground elevation, 0 extra trajectory sims!)
+  const dyRef = refGround - yA;
+  const maxLadder = Math.min(12000, Math.max(2000, Math.ceil(((activeHeliEnv && activeHeliEnv.maxS) || 6000) / 250) * 250));
+  const ladderRows = [];
+  for (let dist = 750; dist <= maxLadder; dist += 250) {
+    const sols = fan.solve(SHELL, dist, dyRef);
+    if (!sols.length) continue;
+    const [e, tof] = sols[0];
+    const sp05 = fan.span05(e, refGround);
+    const deg = e / WT.DEG;
+    ladderRows.push(`<tr>
+      <td>${dist} m</td>
+      <td class="el-col">${deg >= 0 ? "+" : ""}${deg.toFixed(2)}°</td>
+      <td>${mil(e)}</td>
+      <td>${tof.toFixed(2)} s</td>
+      <td>${isFinite(sp05) ? "±" + Math.round(sp05 / 2) + " m" : "—"}</td>
+    </tr>`);
+  }
+  if (activeHeliEnv && activeHeliEnv.maxS > 0 && (activeHeliEnv.reason === "time" || activeHeliEnv.reason === "dist")) {
+    const limTxt = activeHeliEnv.reason === "time" ? `飞满 ${activeHeliEnv.tLife}s 半空自毁` : `达 ${(activeHeliEnv.maxDist / 1000).toFixed(1)}km 自毁上限`;
+    ladderRows.push(`<tr><td colspan="5" class="bad" style="text-align:center">&gt; ${Math.round(activeHeliEnv.maxS)} m：${limTxt}</td></tr>`);
+  }
+  $("heliLadderTbl").querySelector("tbody").innerHTML = ladderRows.join("") || `<tr><td colspan="5" class="note" style="text-align:center">当前参数无有效梯度解</td></tr>`;
+}
+
+$("heliTacTbl").addEventListener("click", e => {
+  const del = e.target.closest("button[data-del-pin]");
+  if (del) {
+    e.stopPropagation();
+    const id = parseFloat(del.dataset.delPin);
+    pinnedTargets = pinnedTargets.filter(pt => pt.id !== id);
+    updateAim();
+    return;
+  }
+  const tr = e.target.closest("tr[data-tx]");
+  if (!tr) return;
+  B = { x: parseFloat(tr.dataset.tx), z: parseFloat(tr.dataset.tz) };
+  if (A) heading = Math.atan2(B.x - A.x, B.z - A.z);
+  updateAim();
+  if (isMobileScreen()) setSidebarOpen(false);
+});
+
 function updateAim() {
   aim = null;
-  if (!MAP || !SHELL || !A || !B) {
-    $("out").textContent = MAP ? "左键（或触屏点选）放置开火点 A，右键（或长按/切放B）放置目标点 B。" : "正在等待地图加载…";
+  activeHeliEnv = null;
+  if (!MAP || !SHELL) {
+    $("out").textContent = "正在等待地图加载…";
     $("mobAimCard").hidden = true;
     draw(); drawProfile(); return;
   }
-  const S = MAP.Tr, p = params();
-  const gA = S.heightAt(A.x, A.z), gB = S.heightAt(B.x, B.z);
+  const hMode = isHeli();
+  syncHeliAltUI();
+  const S = MAP.Tr, p = params(), step = MAP.T.cell / 2, Tc = MAP.Tc, Ts = MAP.Ts;
+
+  if (!A || !B) {
+    if (hMode) {
+      const gA0 = A ? groundAt(S, A.x, A.z) : MAP.T.lo;
+      renderHeliFiringTables(p, gA0, gA0 + p.gunH, step);
+    } else {
+      $("out").textContent = "左键（或触屏点选）放置开火点 A，右键（或长按/切放B）放置目标点 B。";
+    }
+    $("mobAimCard").hidden = true;
+    draw(); drawProfile(); return;
+  }
+
+  const gA = groundAt(S, A.x, A.z), gB = groundAt(S, B.x, B.z);
   const yA = gA + p.gunH, yB = gB + p.tgtH;
   const d = Math.hypot(B.x - A.x, B.z - A.z), dy = yB - yA, dir = d > 1e-6 ? [(B.x - A.x) / d, (B.z - A.z) / d] : [0, 1];
-  const step = MAP.T.cell / 2, Tc = MAP.Tc, Ts = MAP.Ts;
-  const what = (Surf, s) => s == null ? "" : "（被" + ["山体地形", "建筑/巨石", "树木/灌木"][Surf.srcAt(A.x + dir[0] * s, A.z + dir[1] * s)] + "遮挡）";
+  const what = (Surf, s) => {
+    if (s == null) return "";
+    const bx = A.x + dir[0] * s, bz = A.z + dir[1] * s;
+    const idx = Surf.inside(bx, bz) ? Surf.srcAt(bx, bz) : 0;
+    return "（被" + ["山体地形", "建筑/巨石", "树木/灌木"][idx] + "遮挡）";
+  };
   const los = WT.losBlocked(Ts, A, yA, B, yB, step);
-  const sols = d > 1 ? WT.solveExact(SHELL, d, dy, yA, p.pMin, p.pMax).map(e => {
-    const tr = WT.simulate(SHELL, e, yA, d + 1), blocked = WT.pathBlocked(Tc, A, dir, tr, d, step);
+  const sols = d > 1 ? WT.solveExact(SHELL, d, dy, yA, p.pMin, p.pMax, { vAir: p.vAir }).map(e => {
+    const tr = WT.simulate(SHELL, e, yA, d + 2, { vAir: p.vAir }), blocked = WT.pathBlocked(Tc, A, dir, tr, d, step);
     return { e, tr, t: WT.atDist(tr, "t", d), v: WT.atDist(tr, "v", d), blocked, by: what(Tc, blocked) };
   }) : [];
-  aim = { d, dy, yA, yB, los, sols, dir };
+  aim = { d, dy, yA, yB, gA, gB, los, sols, dir };
   const losAng = Math.atan2(dy, d), mil = r => (r * 3200 / Math.PI).toFixed(1);
   const az = ((Math.atan2(dir[0], dir[1]) / WT.DEG) + 360) % 360;
-  let s = `水平距离  ${d.toFixed(1)} m（斜距 ${Math.hypot(d, dy).toFixed(1)} m）\n` +
-    `海拔高程  A ${gA.toFixed(1)} m   B ${gB.toFixed(1)} m   高差 ${dy >= 0 ? "+" : ""}${dy.toFixed(1)} m\n` +
-    `方位角度  ${az.toFixed(1)}°   高低视线角 ${(losAng / WT.DEG).toFixed(2)}°\n` +
-    `观察视线  ${los == null ? "通视无阻" : "在 " + los.toFixed(0) + " m 处受阻" + what(Ts, los)}\n`;
-  if (SHELL.rocket && SHELL.rocket.guided) {
-    s += `提示：该弹药为制导武器，游戏内沿瞄准线/制导指令飞行\n`;
+
+  if (hMode) {
+    renderHeliFiringTables(p, gA, yA, step);
+  } else {
+    let s = `水平距离  ${d.toFixed(1)} m（斜距 ${Math.hypot(d, dy).toFixed(1)} m）\n` +
+      `海拔高程  A ${gA.toFixed(1)} m   B ${gB.toFixed(1)} m   高差 ${dy >= 0 ? "+" : ""}${dy.toFixed(1)} m\n` +
+      `方位角度  ${az.toFixed(1)}°   高低视线角 ${(losAng / WT.DEG).toFixed(2)}°\n` +
+      `观察视线  ${los == null ? "通视无阻" : "在 " + los.toFixed(0) + " m 处受阻" + what(Ts, los)}\n`;
+    if (SHELL.rocket && SHELL.rocket.guided) {
+      s += `提示：该弹药为制导武器，游戏内沿瞄准线/制导指令飞行\n`;
+    }
+    if (d > 1 && !sols.length) s += `在射界 ${p.pMin}°..${p.pMax}° 内无解（超出有效射程或自毁上限）\n`;
+    sols.forEach((q, i) => {
+      const hold = d * Math.tan(q.e) - dy;
+      const arcLabel = sols.length > 1 ? (i ? "高抛曲射" : "低伸直射") : "射击诸元";
+      s += `\n${arcLabel}：${q.blocked == null ? "可命中目标" : "在 " + q.blocked.toFixed(0) + " m 处受阻" + q.by}\n` +
+        `  火炮仰角  ${(q.e / WT.DEG).toFixed(3)}°  (${mil(q.e)} 密位)\n` +
+        `  瞄准抬高  +${mil(q.e - losAng)} 密位  = 瞄在 B 上方 ${hold.toFixed(2)} m\n` +
+        `  飞行时间  ${q.t.toFixed(2)} s，落点存速 ${q.v.toFixed(0)} m/s\n`;
+    });
+    $("out").innerHTML = escHtml(s)
+      .replace(/通视无阻|可命中目标/g, "<span class=ok>$&</span>")
+      .replace(/在 \d+ m 处受阻[^\n]*/g, "<span class=bad>$&</span>");
   }
-  if (d > 1 && !sols.length) s += `在射界 ${p.pMin}°..${p.pMax}° 内无解（超出有效射程或仰角不足）\n`;
-  sols.forEach((q, i) => {
-    const hold = d * Math.tan(q.e) - dy;
-    const arcLabel = sols.length > 1 ? (i ? "高抛曲射" : "低伸直射") : "射击诸元";
-    s += `\n${arcLabel}：${q.blocked == null ? "可命中目标" : "在 " + q.blocked.toFixed(0) + " m 处受阻" + q.by}\n` +
-      `  火炮仰角  ${(q.e / WT.DEG).toFixed(3)}°  (${mil(q.e)} 密位)\n` +
-      `  瞄准抬高  +${mil(q.e - losAng)} 密位  = 瞄在 B 上方 ${hold.toFixed(2)} m\n` +
-      `  飞行时间  ${q.t.toFixed(2)} s，落点存速 ${q.v.toFixed(0)} m/s\n`;
-  });
-  $("out").innerHTML = escHtml(s)
-    .replace(/通视无阻|可命中目标/g, "<span class=ok>$&</span>")
-    .replace(/在 \d+ m 处受阻[^\n]*/g, "<span class=bad>$&</span>");
 
   // Populate Mobile Floating Firing Solution Card (#mobAimCard)
   const clearSols = sols.filter(q => q.blocked == null);
-  const losBadge = los == null ? '<span class="ok">通视</span>' : '<span class="bad">视线受阻</span>';
-  const hitBadge = clearSols.length ? '<span class="ok">可命中</span>' : sols.length ? '<span class="bad">弹道受阻</span>' : '<span class="bad">无解</span>';
   const shortVeh = TANK ? TANK.name.replace(/^\[[^\]]+\]\s*/, "") : "";
-  $("mobAimTitle").innerHTML = `<span>A→B <b>${d.toFixed(0)}m</b> (${dy >= 0 ? "+" : ""}${dy.toFixed(0)}m) · ${losBadge} · ${hitBadge}</span><span class="note">${escHtml(shortVeh)}</span>`;
-  let mb = "";
-  if (!sols.length) {
-    mb = `射界 ${p.pMin}°..${p.pMax}° 内无解（超出有效射程或仰角不足）`;
+  if (hMode) {
+    const best = clearSols[0] || sols[0];
+    if (best) {
+      const elDeg = best.e / WT.DEG;
+      const stBadge = best.blocked == null ? '<span class="ok">可达</span>' : `<span class="bad">${best.blocked.toFixed(0)}m受阻</span>`;
+      $("mobAimTitle").innerHTML = `<span>方位 <b style="color:#8fd4ff">${az.toFixed(1)}°</b> · 仰角 <b style="color:var(--acc2)">${elDeg >= 0 ? "+" : ""}${elDeg.toFixed(2)}°</b> · ${stBadge}</span><span class="note">${escHtml(shortVeh)}</span>`;
+      const sp05 = calcPitchSpan(SHELL, best.e, yA, yB, p.vAir);
+      const rm = SHELL.rocket || {};
+      const remTxt = rm.tLife > 0 ? ` · 距自毁余${Math.max(0, rm.tLife - best.t).toFixed(1)}s` : "";
+      $("mobAimBody").innerHTML = `距离 ${d.toFixed(0)}m (海拔${Math.round(yA)}m) · 飞行 ${best.t.toFixed(1)}s${remTxt}${isFinite(sp05) ? ` · ±0.5°≈${Math.round(sp05)}m` : ""}`;
+    } else {
+      $("mobAimTitle").innerHTML = `<span>方位 <b style="color:#8fd4ff">${az.toFixed(1)}°</b> · <span class="bad">不可达 (${d.toFixed(0)}m)</span></span><span class="note">${escHtml(shortVeh)}</span>`;
+      $("mobAimBody").innerHTML = activeHeliEnv && d > activeHeliEnv.maxS ? `<span class="bad">超出火箭弹自毁极限（当前最远 ≈ ${Math.round(activeHeliEnv.maxS)}m）</span>` : `当前射界内无解`;
+    }
   } else {
-    mb = sols.map((q, i) => {
-      const hold = d * Math.tan(q.e) - dy;
-      const lbl = sols.length > 1 ? (i ? "曲射" : "直射") : "诸元";
-      const st = q.blocked == null ? `<span class="ok">命中</span>` : `<span class="bad">${q.blocked.toFixed(0)}m受阻</span>`;
-      return `${lbl} ${st}：仰角 ${(q.e / WT.DEG).toFixed(2)}° (${mil(q.e)}密位) · 抬高+${hold.toFixed(1)}m · ${q.t.toFixed(1)}s`;
-    }).join("\n");
+    const losBadge = los == null ? '<span class="ok">通视</span>' : '<span class="bad">视线受阻</span>';
+    const hitBadge = clearSols.length ? '<span class="ok">可命中</span>' : sols.length ? '<span class="bad">弹道受阻</span>' : '<span class="bad">无解</span>';
+    $("mobAimTitle").innerHTML = `<span>A→B <b>${d.toFixed(0)}m</b> (${dy >= 0 ? "+" : ""}${dy.toFixed(0)}m) · ${losBadge} · ${hitBadge}</span><span class="note">${escHtml(shortVeh)}</span>`;
+    let mb = "";
+    if (!sols.length) {
+      mb = `射界 ${p.pMin}°..${p.pMax}° 内无解（超出有效射程或仰角不足）`;
+    } else {
+      mb = sols.map((q, i) => {
+        const hold = d * Math.tan(q.e) - dy;
+        const lbl = sols.length > 1 ? (i ? "曲射" : "直射") : "诸元";
+        const st = q.blocked == null ? `<span class="ok">命中</span>` : `<span class="bad">${q.blocked.toFixed(0)}m受阻</span>`;
+        return `${lbl} ${st}：仰角 ${(q.e / WT.DEG).toFixed(2)}° (${mil(q.e)}密位) · 抬高+${hold.toFixed(1)}m · ${q.t.toFixed(1)}s`;
+      }).join("\n");
+    }
+    $("mobAimBody").innerHTML = mb;
   }
-  $("mobAimBody").innerHTML = mb;
   $("mobAimCard").hidden = false;
 
   draw(); drawProfile();
@@ -2395,11 +3766,13 @@ function drawProfile() {
   ctx.fillStyle = "#101316"; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = "#8a939c"; ctx.font = "12px " + getComputedStyle(document.body).fontFamily;
   if (!aim) { ctx.fillText("弹道高低剖面图：在地图上放置开火点 A 与目标点 B 后显示沿线地形、障碍与弹道弧线。", 12, 22); return; }
-  const T = MAP.T, { d, dir, yA, yB } = aim, L = d * 1.08, N = Math.min(1200, Math.ceil(L / (T.cell / 2)));
+  const T = MAP.T, { d, dir, yA, yB } = aim, L = d * 1.08, N = Math.min(1200, Math.max(2, Math.ceil(L / Math.max(1, T.cell / 2))));
   const prof = [], profR = [], profV = [];
   for (let i = 0; i <= N; i++) {
     const s = L * i / N, x = A.x + dir[0] * s, z = A.z + dir[1] * s;
-    prof.push([s, T.heightAt(x, z)]); profR.push([s, MAP.Tr.heightAt(x, z)]); profV.push([s, MAP.Tv.heightAt(x, z)]);
+    prof.push([s, WT.surfHeight(T, x, z)]);
+    profR.push([s, WT.surfHeight(MAP.Tr, x, z)]);
+    profV.push([s, WT.surfHeight(MAP.Tv, x, z)]);
   }
   let lo = Math.min(...prof.map(q => q[1]), yA, yB), hi = Math.max(...profV.map(q => q[1]), yA, yB);
   for (const q of aim.sols) for (let i = 0; i < q.tr.s.length; i++) if (q.tr.s[i] <= L) hi = Math.max(hi, q.tr.y[i]);
@@ -2410,13 +3783,17 @@ function drawProfile() {
     for (const [s, y] of pts) ctx.lineTo(X(s), Y(y));
     ctx.lineTo(X(L), H); ctx.fill();
   }
+  if (isHeli() && aim.gA != null) {
+    ctx.strokeStyle = "rgba(224,163,58,0.55)"; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(X(0), Y(aim.gA)); ctx.lineTo(X(0), Y(yA)); ctx.stroke(); ctx.setLineDash([]);
+  }
   ctx.strokeStyle = aim.los == null ? "#58c472" : "#e2574c"; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(X(0), Y(yA)); ctx.lineTo(X(d), Y(yB)); ctx.stroke(); ctx.setLineDash([]);
   aim.sols.forEach((q, i) => {
     ctx.strokeStyle = i ? "#e98a3c" : "#e0a33a"; ctx.lineWidth = 2; ctx.beginPath();
     for (let k = 0; k < q.tr.s.length && q.tr.s[k] <= d; k++) k ? ctx.lineTo(X(q.tr.s[k]), Y(q.tr.y[k])) : ctx.moveTo(X(0), Y(q.tr.y[0]));
     ctx.lineTo(X(d), Y(WT.atDist(q.tr, "y", d))); ctx.stroke(); ctx.lineWidth = 1;
   });
-  for (const [s, y, c, t] of [[0, yA, "#e0a33a", "A"], [d, yB, "#4fb3e8", "B"]]) {
+  for (const [s, y, c, t] of [[0, yA, "#e0a33a", isHeli() ? `武直(${Math.round(yA)}m)` : "A"], [d, yB, "#4fb3e8", "B"]]) {
     ctx.fillStyle = c; ctx.beginPath(); ctx.arc(X(s), Y(y), 4, 0, 7); ctx.fill(); ctx.fillText(t, X(s) + 6, Y(y) - 6);
   }
   ctx.fillStyle = "#8a939c";
@@ -2432,7 +3809,7 @@ function runSweep(kind) {
   const pt = kind === "hit" ? B : A;
   if (!pt) { setStatus(kind === "hit" ? "请先右键放置目标点 B" : "请先左键放置开火点 A", true); return; }
   if (job) job.workers.forEach(w => w.terminate());
-  const p = Object.assign(params(), PERF[$("perf").value], { yPt: MAP.Tr.heightAt(pt.x, pt.z) });
+  const p = Object.assign(params(), PERF[$("perf").value], { yPt: groundAt(MAP.Tr, pt.x, pt.z) });
   const grids = !MAP.roof ? [] : $(kind === "view" ? "vegSight" : "vegShots").checked ? [MAP.roof, MAP.veg] : [MAP.roof];
   const nW = Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 4) - 1));
   const chunk = Math.ceil(p.nAz / nW), parts = [], t0 = performance.now();
@@ -2447,7 +3824,7 @@ function runSweep(kind) {
       if (--me.left === 0 && job === me) { job = null; finishSweep(kind, pt, p, parts, performance.now() - t0); }
     };
     w.onerror = e => { setStatus(`扫描线程出错：${e.message}`, true); me.workers.forEach(x => x.terminate()); job = null; };
-    w.postMessage({ kind, meta: MAP.meta, h16: MAP.h16, roof: MAP.roof, grids, shell: SHELL, p, pt, a0, a1: Math.min(p.nAz, a0 + chunk) });
+    w.postMessage({ kind, meta: MAP.meta, h16: MAP.h16, airMeta: MAP.Tair ? MAP.meta.air : null, airH16: MAP.airH16, roof: MAP.roof, grids, shell: SHELL, p, pt, a0, a1: Math.min(p.nAz, a0 + chunk) });
   }
 }
 function finishSweep(kind, pt, p, parts, ms) {
@@ -2500,7 +3877,7 @@ const V3 = (() => {
   const ORBIT_FOV = 45, DEG = Math.PI / 180, SKY = [0.62, 0.70, 0.78];
   const LIGHT = [-0.55, 0.75, 0.37];
   const cam = { tx: 0, ty: 0, tz: 0, yaw: 0, pitch: 0.9, dist: 3000, aimFov: 20, zoom: 8 };
-  let mode = "2d", res = null, gpuMap = null, ovTex = null, ovSrc = null, lineN = 0, curtainN = 0, pending = false, nPatches = 0;
+  let mode = "2d", res = null, gpuMap = null, gpuAir = null, ovTex = null, ovSrc = null, lineN = 0, curtainN = 0, pending = false, nPatches = 0;
   let VP = null, INV = null, eye = [0, 0, 0];
 
   const sightFov = z => 2 * Math.atan(Math.tan(35 * DEG) / z) / DEG;
@@ -2521,7 +3898,7 @@ const V3 = (() => {
   precision highp float; precision highp sampler2DArray;
   in vec3 vP;
   uniform sampler2D uC, uO, uZ, uIdx; uniform sampler2DArray uDet; uniform float uTiles[32]; uniform float uDetOn;
-  uniform vec4 uUV, uOv; uniform vec3 uZn, uEye, uL, uSky; uniform float uGrid;
+  uniform vec4 uUV, uOv, uClipInner; uniform vec3 uZn, uEye, uL, uSky; uniform float uGrid, uClipOn;
   out vec4 o;
   void main() {
     vec2 uv = (vP.xz - uUV.xy) * uUV.zw;
@@ -2532,16 +3909,23 @@ const V3 = (() => {
     col *= mix(1.0, clamp(1.0 + (det - 1.0) * 1.6, 0.3, 1.8), 0.9 * near);
     vec3 n = normalize(cross(dFdx(vP), dFdy(vP))); if (n.y < 0.0) n = -n;
     col *= 0.8 + 0.3 * max(dot(n, uL), 0.0);
-    vec4 zn = texture(uZ, (vP.xz - uZn.xy) * uZn.z);
-    col = mix(col, zn.rgb, zn.a);
+    vec2 zuv = (vP.xz - uZn.xy) * uZn.z;
+    if (zuv.x >= 0.0 && zuv.y >= 0.0 && zuv.x <= 1.0 && zuv.y <= 1.0) {
+      vec4 zn = texture(uZ, zuv);
+      col = mix(col, zn.rgb, zn.a);
+    }
     if (uGrid > 0.0) {
-      vec2 q = vP.xz / 100.0, g = abs(fract(q - 0.5) - 0.5) / fwidth(q);
-      col = mix(col, vec3(1.0), 0.18 * (1.0 - min(min(g.x, g.y), 1.0)));
+      vec2 q = vP.xz / 100.0, fw = fwidth(q), g = abs(fract(q - 0.5) - 0.5) / fw;
+      float g100 = (1.0 - min(min(g.x, g.y), 1.0)) * clamp(1.0 - max(fw.x, fw.y) * 1.6, 0.0, 1.0);
+      vec2 qk = vP.xz / 1000.0, fwk = fwidth(qk), gk = abs(fract(qk - 0.5) - 0.5) / fwk;
+      float g1k = (1.0 - min(min(gk.x, gk.y), 1.0)) * clamp(1.0 - max(fwk.x, fwk.y) * 1.6, 0.0, 1.0);
+      col = mix(col, vec3(1.0), 0.18 * max(g100, g1k * 0.85));
     }
     if (uOv.w > 0.0) {
       vec2 ou = (vP.xz - uOv.xy) * uOv.z;
       if (ou.x >= 0.0 && ou.y >= 0.0 && ou.x <= 1.0 && ou.y <= 1.0) { vec4 t = texture(uO, ou); col = mix(col, t.rgb, t.a); }
     }
+    if (uClipOn > 0.5 && vP.x > uClipInner.x + 1.0 && vP.z > uClipInner.y + 1.0 && vP.x < uClipInner.z - 1.0 && vP.z < uClipInner.w - 1.0) discard;
     o = vec4(mix(col, uSky, 0.7 * (1.0 - exp(-distance(vP, uEye) / 20000.0))), 1.0);
   }`;
   const LVS = `#version 300 es
@@ -2570,8 +3954,11 @@ const V3 = (() => {
   void main() {
     vec3 n = vN / max(length(vN), 1e-6);
     vec3 col = vC * (0.5 + 0.6 * abs(dot(n, uL)));
-    vec4 zn = texture(uZ, (vP.xz - uZn.xy) * uZn.z);
-    col = mix(col, zn.rgb, zn.a);
+    vec2 zuv = (vP.xz - uZn.xy) * uZn.z;
+    if (zuv.x >= 0.0 && zuv.y >= 0.0 && zuv.x <= 1.0 && zuv.y <= 1.0) {
+      vec4 zn = texture(uZ, zuv);
+      col = mix(col, zn.rgb, zn.a);
+    }
     o = vec4(mix(col, uSky, 0.7 * (1.0 - exp(-distance(vP, uEye) / 20000.0))), 1.0);
   }`;
   const TRVS = `#version 300 es
@@ -2615,8 +4002,11 @@ const V3 = (() => {
     float lit = 0.45 + 0.6 * max(dot(n, uL), 0.0) + 0.12 * n.y;
     float leaf = 0.6 * noise(vP * 1.6) + 0.4 * noise(vP * 4.5);
     vec3 col = vC * lit * (0.6 + 0.6 * leaf) * (0.62 + 0.38 * vY);
-    vec4 zn = texture(uZ, (vP.xz - uZn.xy) * uZn.z);
-    col = mix(col, zn.rgb, zn.a);
+    vec2 zuv = (vP.xz - uZn.xy) * uZn.z;
+    if (zuv.x >= 0.0 && zuv.y >= 0.0 && zuv.x <= 1.0 && zuv.y <= 1.0) {
+      vec4 zn = texture(uZ, zuv);
+      col = mix(col, zn.rgb, zn.a);
+    }
     o = vec4(mix(col, uSky, 0.7 * (1.0 - exp(-distance(vP, uEye) / 20000.0))), 1.0);
   }`;
   const WVS = `#version 300 es
@@ -2631,6 +4021,7 @@ const V3 = (() => {
   precision highp float;
   in vec3 vP;
   uniform highp sampler2D uH; uniform sampler2D uZ; uniform vec3 uMap, uZn, uEye, uL, uSky; uniform ivec2 uSize;
+  uniform vec4 uClipInner; uniform float uClipOn;
   out vec4 o;
   float h2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
   float vn(vec2 p) {
@@ -2642,6 +4033,7 @@ const V3 = (() => {
     ivec2 c = clamp(ivec2(floor((vP.xz - uMap.xy) / uMap.z + 0.5)), ivec2(0), uSize - 1);
     float depth = vP.y - texelFetch(uH, c, 0).r;
     if (depth <= 0.0) discard;
+    if (uClipOn > 0.5 && vP.x >= uClipInner.x && vP.z >= uClipInner.y && vP.x <= uClipInner.z && vP.z <= uClipInner.w) discard;
     float w0 = waves(vP.xz), e = 0.6;
     vec3 n = normalize(vec3((w0 - waves(vP.xz + vec2(e, 0.0))) * 0.35, 1.0, (w0 - waves(vP.xz + vec2(0.0, e))) * 0.35));
     vec3 v = normalize(uEye - vP);
@@ -2651,8 +4043,11 @@ const V3 = (() => {
     col += vec3(1.0, 0.95, 0.85) * pow(max(dot(reflect(-uL, n), v), 0.0), 160.0) * 0.9;
     col = mix(col, vec3(0.85, 0.9, 0.92), 0.45 * smoothstep(0.45, 0.0, depth));
     float a = max(clamp(0.5 + depth * 0.1, 0.5, 0.92), fr);
-    vec4 zn = texture(uZ, (vP.xz - uZn.xy) * uZn.z);
-    col = mix(col, zn.rgb, zn.a);
+    vec2 zuv = (vP.xz - uZn.xy) * uZn.z;
+    if (zuv.x >= 0.0 && zuv.y >= 0.0 && zuv.x <= 1.0 && zuv.y <= 1.0) {
+      vec4 zn = texture(uZ, zuv);
+      col = mix(col, zn.rgb, zn.a);
+    }
     o = vec4(mix(col, uSky, 0.7 * (1.0 - exp(-distance(vP, uEye) / 20000.0))), a);
   }`;
 
@@ -2760,6 +4155,48 @@ const V3 = (() => {
     res = { terrain, lines, build, tree, water, tVao, inst, nIdx: idx.length, lVao, lbuf, cVao, cbuf, aniso: gl.getExtension("EXT_texture_filter_anisotropic") };
   }
 
+  let gpuPads = null;
+  function uploadPads() {
+    const key = MAP && MAP.meta ? `${MAP.meta.name}|${HELIPAD_LIB ? 1 : 0}` : "";
+    if (gpuPads && gpuPads.key === key) return;
+    if (gpuPads) for (const b of gpuPads.batches) { gl.deleteVertexArray(b.vao); b.bufs.forEach(x => gl.deleteBuffer(x)); }
+    gpuPads = null;
+    const pads = MAP && MAP.meta && MAP.meta.helipads;
+    if (!HELIPAD_LIB || !pads || !pads.length) { gpuPads = { key, batches: [] }; return; }
+    const per = HELIPAD_LIB.models.map(() => []);
+    for (const pd of pads) {
+      const pf = HELIPAD_LIB.prefabs[String(pd.uc || "").toLowerCase()] || HELIPAD_LIB.prefabs.dynhelipad_beton_a_usa;
+      if (!pf || !pf.inst) continue;
+      const [ux, uz] = WT.padBasis(pd);
+      const rot = (vx, vy, vz) => [vx * ux - vz * uz, vy, vx * uz + vz * ux];
+      for (const arr of pf.inst) {
+        const mid = arr[0] | 0;
+        if (mid < 0 || mid >= per.length) continue;
+        const wx = rot(arr[1], arr[2], arr[3]);
+        const wy = rot(arr[4], arr[5], arr[6]);
+        const wz = rot(arr[7], arr[8], arr[9]);
+        const wt = rot(arr[10], arr[11], arr[12]);
+        per[mid].push(wx[0], wx[1], wx[2], wy[0], wy[1], wy[2], wz[0], wz[1], wz[2], wt[0] + pd.x, wt[1] + pd.y, wt[2] + pd.z);
+      }
+    }
+    const batches = [];
+    HELIPAD_LIB.models.forEach((m, mi) => {
+      if (!per[mi].length || !m.idx.length) return;
+      const tm = new Float32Array(per[mi]);
+      const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+      const pb = staticBuf(gl.ARRAY_BUFFER, m.pos); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+      const nb = staticBuf(gl.ARRAY_BUFFER, m.nrm); gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.BYTE, true, 4, 0);
+      const cb = staticBuf(gl.ARRAY_BUFFER, m.rgba); gl.enableVertexAttribArray(6); gl.vertexAttribPointer(6, 4, gl.UNSIGNED_BYTE, true, 0, 0);
+      const ib = staticBuf(gl.ARRAY_BUFFER, tm);
+      gl.bindBuffer(gl.ARRAY_BUFFER, ib);
+      for (let a = 0; a < 4; a++) { gl.enableVertexAttribArray(2 + a); gl.vertexAttribPointer(2 + a, 3, gl.FLOAT, false, 48, a * 12); gl.vertexAttribDivisor(2 + a, 1); }
+      const eb = staticBuf(gl.ELEMENT_ARRAY_BUFFER, m.idx);
+      batches.push({ vao, bufs: [pb, nb, cb, ib, eb], n: m.idx.length, count: per[mi].length / 12 });
+    });
+    gl.bindVertexArray(null);
+    gpuPads = { key, batches };
+  }
+
   let gpuObj = null;
   function uploadObjects() {
     if (gpuObj && gpuObj.obj === MAP.obj) return;
@@ -2829,19 +4266,27 @@ const V3 = (() => {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filterMin); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filterMag);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   }
-  function uploadMap() {
-    if (gpuMap) { gl.deleteTexture(gpuMap.h); gl.deleteTexture(gpuMap.c); }
-    const T = MAP.T;
+  function uploadTerrainTex(T, img) {
     const h = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, h);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, T.w, T.h, 0, gl.RED, gl.FLOAT, T.H);
     texParams(gl.NEAREST, gl.NEAREST);
     const c = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, c);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, MAP.img);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
     gl.generateMipmap(gl.TEXTURE_2D); texParams(gl.LINEAR_MIPMAP_LINEAR, gl.LINEAR);
     if (res.aniso) gl.texParameterf(gl.TEXTURE_2D, res.aniso.TEXTURE_MAX_ANISOTROPY_EXT, 8);
-    gpuMap = { img: MAP.img, h, c };
+    return { img, h, c };
+  }
+  function uploadMap() {
+    if (gpuMap) { gl.deleteTexture(gpuMap.h); gl.deleteTexture(gpuMap.c); }
+    gpuMap = uploadTerrainTex(MAP.T, MAP.img);
+  }
+  function uploadAir() {
+    const src = MAP.Tair && MAP.airImg ? MAP.airImg : null;
+    if ((gpuAir ? gpuAir.img : null) === src) return;
+    if (gpuAir) { gl.deleteTexture(gpuAir.h); gl.deleteTexture(gpuAir.c); gpuAir = null; }
+    if (src) gpuAir = uploadTerrainTex(MAP.Tair, src);
   }
   function uploadOverlay() {
     if (ovSrc === overlay) return;
@@ -2906,9 +4351,26 @@ const V3 = (() => {
       for (let i = 1; i < pts.length; i++) if (pts[i - 1] && pts[i]) seg(pts[i - 1], pts[i], rgb(areaColor(a)));
     }
     const aimLike = (mode === "aim" || mode === "sight") && aim && aim.d >= 1;
+    // Draw 3D helipad tactical center frame & takeoff orientation arrow
+    if (MAP.meta && MAP.meta.helipads && ($("showCaps").checked || isHeli())) {
+      for (const pd of MAP.meta.helipads) {
+        const c = rgb(pd.team === 1 ? "#4fb3e8" : "#f09648");
+        const [ux, uz] = WT.padBasis(pd);
+        const r = 13, y = pd.y + 0.35;
+        const wpt = (lx, lz) => [pd.x + lx * ux - lz * uz, y, pd.z + lx * uz + lz * ux];
+        strip([wpt(-r, -r), wpt(r, -r), wpt(r, r), wpt(-r, r), wpt(-r, -r)], c);
+        const yr = (pd.yaw || 0) * WT.DEG;
+        seg([pd.x, y, pd.z], [pd.x + Math.sin(yr) * 68, y + 3, pd.z + Math.cos(yr) * 68], c);
+      }
+    }
     if (!aimLike) {
-      for (const [pt, col] of [[A, "#e0a33a"], [B, "#4fb3e8"], [highShown(), HIGH_COLOR]]) if (pt) {
-        const g = Tr.heightAt(pt.x, pt.z); seg([pt.x, g, pt.z], [pt.x, g + 25, pt.z], rgb(col));
+      if (A) {
+        const g = groundAt(Tr, A.x, A.z);
+        const topY = isHeli() ? g + Math.max(25, heliAgl) : g + 25;
+        seg([A.x, g, A.z], [A.x, topY, A.z], rgb("#e0a33a"));
+      }
+      for (const [pt, col] of [[B, "#4fb3e8"], [highShown(), HIGH_COLOR]]) if (pt) {
+        const g = groundAt(Tr, pt.x, pt.z); seg([pt.x, g, pt.z], [pt.x, g + 25, pt.z], rgb(col));
       }
     }
     if (aim && mode !== "sight") {
@@ -2927,7 +4389,7 @@ const V3 = (() => {
     const C = [];
     if (aim && $("showArc").checked && mode !== "sight") aim.sols.forEach((q, i) => {
       const end = q.blocked != null ? q.blocked : aim.d, c = rgb(i ? "#e98a3c" : "#e0a33a"), n = Math.min(600, Math.max(2, Math.ceil(end / Math.max(2, T.cell))));
-      const col = k => { const s = end * k / n, x = A.x + aim.dir[0] * s, z = A.z + aim.dir[1] * s, y = WT.atDist(q.tr, "y", s); return [[x, y, z], [x, Math.min(y, Tr.heightAt(x, z)), z]]; };
+      const col = k => { const s = end * k / n, x = A.x + aim.dir[0] * s, z = A.z + aim.dir[1] * s, y = WT.atDist(q.tr, "y", s); return [[x, y, z], [x, Math.min(y, WT.surfHeight(Tr, x, z)), z]]; };
       let [t0, b0] = col(0);
       for (let k = 1; k <= n; k++) {
         const [t1, b1] = col(k);
@@ -2951,9 +4413,9 @@ const V3 = (() => {
     } else {
       const cp = Math.cos(cam.pitch), f = [Math.sin(cam.yaw) * cp, -Math.sin(cam.pitch), Math.cos(cam.yaw) * cp];
       t = [cam.tx, cam.ty, cam.tz]; e = t.map((v, i) => v - f[i] * cam.dist); fov = ORBIT_FOV;
-      near = Math.min(100, Math.max(0.5, Math.min((e[1] - T.heightAt(e[0], e[2])) * 0.3, cam.dist * 0.05)));
+      near = Math.min(100, Math.max(0.5, Math.min((e[1] - groundAt(T, e[0], e[2])) * 0.3, cam.dist * 0.05)));
     }
-    const proj = perspective(fov * DEG, W / H, near, 80000);
+    const proj = perspective(fov * DEG, W / H, near, 120000);
     proj[0] = -proj[0];
     VP = mul(proj, lookAt(e, t)); INV = invert(VP); eye = e;
   }
@@ -2963,8 +4425,8 @@ const V3 = (() => {
     for (let i = 0; i < 3; i++) { const r = row(i); out.push(w.map((v, j) => v + r[j]), w.map((v, j) => v - r[j])); }
     return out;
   }
-  function collect(x0, z0, size, out, pl, k) {
-    const T = MAP.T, c = T.cell;
+  function collect(T, x0, z0, size, out, pl, k) {
+    const c = T.cell;
     if (x0 >= T.w - 1 || z0 >= T.h - 1) return;
     const ax = T.ox + x0 * c, az = T.oz + z0 * c, bx = ax + size * c, bz = az + size * c, ay = T.lo - size / P * c * 4 - 2, by = T.hi;
     for (const p of pl) if (p[0] * (p[0] > 0 ? bx : ax) + p[1] * (p[1] > 0 ? by : ay) + p[2] * (p[2] > 0 ? bz : az) + p[3] < 0) return;
@@ -2972,7 +4434,7 @@ const V3 = (() => {
       const dx = Math.max(ax - eye[0], 0, eye[0] - bx), dy = Math.max(ay - eye[1], 0, eye[1] - by), dz = Math.max(az - eye[2], 0, eye[2] - bz);
       if (Math.hypot(dx, dy, dz) < size * c * k) {
         const h = size / 2;
-        collect(x0, z0, h, out, pl, k); collect(x0 + h, z0, h, out, pl, k); collect(x0, z0 + h, h, out, pl, k); collect(x0 + h, z0 + h, h, out, pl, k);
+        collect(T, x0, z0, h, out, pl, k); collect(T, x0 + h, z0, h, out, pl, k); collect(T, x0, z0 + h, h, out, pl, k); collect(T, x0 + h, z0 + h, h, out, pl, k);
         return;
       }
     }
@@ -2986,35 +4448,57 @@ const V3 = (() => {
     if (!W || !H) return;
     if (cv.width !== Math.round(W * d) || cv.height !== Math.round(H * d)) { cv.width = Math.round(W * d); cv.height = Math.round(H * d); }
     camera(W, H);
-    const T = MAP.T;
+    const T = MAP.T, fr = frustum(VP), lod = LODK[$("detail3d").value] || 3;
     gl.viewport(0, 0, cv.width, cv.height);
     gl.clearColor(...SKY, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);
 
-    const nodes = [], root = Math.max(P, 2 ** Math.ceil(Math.log2(Math.max(T.w, T.h) - 1)));
-    collect(0, 0, root, nodes, frustum(VP), LODK[$("detail3d").value] || 3);
-    nPatches = nodes.length / 3;
     const tp = res.terrain, u = tp.u;
     gl.useProgram(tp.p); gl.bindVertexArray(res.tVao);
-    gl.bindBuffer(gl.ARRAY_BUFFER, res.inst); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(nodes), gl.STREAM_DRAW);
-    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, gpuMap.h);
-    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, gpuMap.c);
     gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, ovTex);
     gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, znTex);
-    gl.uniform1i(u.uH, 0); gl.uniform1i(u.uC, 1); gl.uniform1i(u.uO, 2); gl.uniform1i(u.uZ, 3);
     gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D, det ? det.idx : null);
     gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D_ARRAY, det ? det.arr : null);
+    gl.uniform1i(u.uH, 0); gl.uniform1i(u.uC, 1); gl.uniform1i(u.uO, 2); gl.uniform1i(u.uZ, 3);
     gl.uniform1i(u.uIdx, 4); gl.uniform1i(u.uDet, 5);
-    gl.uniform1f(u.uDetOn, det && $("groundDetail").checked ? 1 : 0);
     if (det) gl.uniform1fv(u["uTiles[0]"], det.tiles);
     gl.uniform3f(u.uZn, T.ox - T.cell / 2, T.z1 + T.cell / 2 - znSrc.size, 1 / znSrc.size);
     gl.uniformMatrix4fv(u.uVP, false, VP);
-    gl.uniform3f(u.uMap, T.ox, T.oz, T.cell); gl.uniform2i(u.uSize, T.w, T.h);
-    gl.uniform4f(u.uUV, T.ox - T.cell / 2, T.oz - T.cell / 2, 1 / (T.w * T.cell), 1 / (T.h * T.cell));
     gl.uniform4f(u.uOv, overlay ? overlay.x0 : 0, overlay ? overlay.z0 : 0, overlay ? 1 / overlay.size : 0, overlay ? 1 : 0);
     gl.uniform3f(u.uEye, ...eye); gl.uniform3f(u.uL, ...LIGHT.map(v => v / Math.hypot(...LIGHT))); gl.uniform3f(u.uSky, ...SKY);
     gl.uniform1f(u.uGrid, $("showGrid").checked ? 1 : 0);
-    gl.drawElementsInstanced(gl.TRIANGLES, res.nIdx, gl.UNSIGNED_SHORT, 0, nPatches);
+    gl.uniform4f(u.uClipInner, T.ox, T.oz, T.x1, T.z1);
+
+    let airPatches = 0;
+    if (gpuAir && MAP.Tair) {
+      const Ta = MAP.Tair, airNodes = [], airRoot = Math.max(P, 2 ** Math.ceil(Math.log2(Math.max(Ta.w, Ta.h) - 1)));
+      collect(Ta, 0, 0, airRoot, airNodes, fr, lod);
+      airPatches = airNodes.length / 3;
+      if (airPatches > 0) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, res.inst); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(airNodes), gl.STREAM_DRAW);
+        gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, gpuAir.h);
+        gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, gpuAir.c);
+        gl.uniform1f(u.uDetOn, 0);
+        gl.uniform1f(u.uClipOn, 1);
+        gl.uniform3f(u.uMap, Ta.ox, Ta.oz, Ta.cell); gl.uniform2i(u.uSize, Ta.w, Ta.h);
+        gl.uniform4f(u.uUV, Ta.ox - Ta.cell / 2, Ta.oz - Ta.cell / 2, 1 / (Ta.w * Ta.cell), 1 / (Ta.h * Ta.cell));
+        gl.drawElementsInstanced(gl.TRIANGLES, res.nIdx, gl.UNSIGNED_SHORT, 0, airPatches);
+      }
+    }
+
+    const nodes = [], root = Math.max(P, 2 ** Math.ceil(Math.log2(Math.max(T.w, T.h) - 1)));
+    collect(T, 0, 0, root, nodes, fr, lod);
+    nPatches = nodes.length / 3 + airPatches;
+    if (nodes.length > 0) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, res.inst); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(nodes), gl.STREAM_DRAW);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, gpuMap.h);
+      gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, gpuMap.c);
+      gl.uniform1f(u.uDetOn, det && $("groundDetail").checked ? 1 : 0);
+      gl.uniform1f(u.uClipOn, 0);
+      gl.uniform3f(u.uMap, T.ox, T.oz, T.cell); gl.uniform2i(u.uSize, T.w, T.h);
+      gl.uniform4f(u.uUV, T.ox - T.cell / 2, T.oz - T.cell / 2, 1 / (T.w * T.cell), 1 / (T.h * T.cell));
+      gl.drawElementsInstanced(gl.TRIANGLES, res.nIdx, gl.UNSIGNED_SHORT, 0, nodes.length / 3);
+    }
 
     const shaded = prog => {
       gl.useProgram(prog.p);
@@ -3022,6 +4506,10 @@ const V3 = (() => {
       gl.uniform3f(prog.u.uL, ...LIGHT.map(v => v / Math.hypot(...LIGHT))); gl.uniform3f(prog.u.uSky, ...SKY);
       gl.uniform1i(prog.u.uZ, 3); gl.uniform3f(prog.u.uZn, T.ox - T.cell / 2, T.z1 + T.cell / 2 - znSrc.size, 1 / znSrc.size);
     };
+    if (gpuPads && gpuPads.batches.length) {
+      shaded(res.build);
+      for (const b of gpuPads.batches) { gl.bindVertexArray(b.vao); gl.drawElementsInstanced(gl.TRIANGLES, b.n, gl.UNSIGNED_INT, 0, b.count); }
+    }
     if (gpuObj && $("showBuild").checked) {
       shaded(res.build);
       for (const b of gpuObj.batches) { gl.bindVertexArray(b.vao); gl.drawElementsInstanced(gl.TRIANGLES, b.n, gl.UNSIGNED_INT, 0, b.count); }
@@ -3035,8 +4523,8 @@ const V3 = (() => {
       const yawA = heading != null ? heading : (A && B ? Math.atan2(B.x - A.x, B.z - A.z) : 0);
       const yawB = A && B ? Math.atan2(A.x - B.x, A.z - B.z) : Math.PI;
       const list = [
-        [!aimReady() && A && TANK && (TANK.model || "leopard_2a4"), A, yawA, [0.78, 0.6, 0.3]],
-        [B && TARGET_MODEL, B, yawB, [0.36, 0.58, 0.8]],
+        [!isHeli() && !aimReady() && A && MAP.Tr.inside(A.x, A.z) && TANK && (TANK.model || "leopard_2a4"), A, yawA, [0.78, 0.6, 0.3]],
+        [B && MAP.Tr.inside(B.x, B.z) && TARGET_MODEL, B, yawB, [0.36, 0.58, 0.8]],
       ];
       for (const [model, p, yaw, col] of list) {
         const g = model && gpuTank(model);
@@ -3052,15 +4540,25 @@ const V3 = (() => {
     if (MAP.meta.water != null && $("showWater").checked) {
       const wp = res.water, wu = wp.u;
       gl.useProgram(wp.p); gl.bindVertexArray(null);
-      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, gpuMap.h);
       gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, znTex);
       gl.uniform1i(wu.uH, 0); gl.uniform1i(wu.uZ, 3);
       gl.uniformMatrix4fv(wu.uVP, false, VP); gl.uniform1f(wu.uLevel, MAP.meta.water);
-      gl.uniform4f(wu.uRect, T.ox, T.oz, T.x1, T.z1);
-      gl.uniform3f(wu.uMap, T.ox, T.oz, T.cell); gl.uniform2i(wu.uSize, T.w, T.h);
       gl.uniform3f(wu.uZn, T.ox - T.cell / 2, T.z1 + T.cell / 2 - znSrc.size, 1 / znSrc.size);
       gl.uniform3f(wu.uEye, ...eye); gl.uniform3f(wu.uL, ...LIGHT.map(v => v / Math.hypot(...LIGHT))); gl.uniform3f(wu.uSky, ...SKY);
+      gl.uniform4f(wu.uClipInner, T.ox, T.oz, T.x1, T.z1);
       gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
+      if (gpuAir && MAP.Tair) {
+        const Ta = MAP.Tair;
+        gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, gpuAir.h);
+        gl.uniform1f(wu.uClipOn, 1);
+        gl.uniform4f(wu.uRect, Ta.ox, Ta.oz, Ta.x1, Ta.z1);
+        gl.uniform3f(wu.uMap, Ta.ox, Ta.oz, Ta.cell); gl.uniform2i(wu.uSize, Ta.w, Ta.h);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      }
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, gpuMap.h);
+      gl.uniform1f(wu.uClipOn, 0);
+      gl.uniform4f(wu.uRect, T.ox, T.oz, T.x1, T.z1);
+      gl.uniform3f(wu.uMap, T.ox, T.oz, T.cell); gl.uniform2i(wu.uSize, T.w, T.h);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       gl.depthMask(true); gl.disable(gl.BLEND);
     }
@@ -3095,6 +4593,7 @@ const V3 = (() => {
     const k = (H / 2) / Math.tan(sightFov(cam.zoom) * DEG / 2);
     const at = a => k * Math.tan(a);
     const mil = Math.PI / 3200;
+    const heli = isHeli(), vAir = params().vAir || 0;
 
     // Dark eyepiece mask outside circle
     ctx.save();
@@ -3108,7 +4607,8 @@ const V3 = (() => {
 
     // Clip reticle inside eyepiece
     ctx.beginPath(); ctx.arc(cx, cy, r - 1, 0, 2 * Math.PI); ctx.clip();
-    ctx.strokeStyle = "rgba(12,12,12,0.95)"; ctx.fillStyle = "rgba(12,12,12,0.95)";
+    ctx.strokeStyle = heli ? "rgba(92,235,148,0.88)" : "rgba(12,12,12,0.95)";
+    ctx.fillStyle = heli ? "rgba(92,235,148,0.92)" : "rgba(12,12,12,0.95)";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(cx - r, cy); ctx.lineTo(cx - 5, cy);
@@ -3129,34 +4629,36 @@ const V3 = (() => {
       }
     }
 
-    // Dynamic range ladder every 200m for the selected shell/rocket
+    // Dynamic range ladder for the selected shell/rocket
     if (SHELL) {
-      const maxR = 4000;
-      const useExact = !!SHELL.rocket || SHELL.v0 < 350;
-      const tr0 = useExact ? null : WT.simulate(SHELL, 0, aim.yA, maxR + 1);
-      for (let rng = 200; rng <= maxR; rng += 200) {
+      const maxR = heli ? 8000 : 4000, stepR = heli ? 500 : 200;
+      const useExact = !!SHELL.rocket || SHELL.v0 < 350 || vAir > 0;
+      const tr0 = useExact ? null : WT.simulate(SHELL, 0, aim.yA, maxR + 1, { vAir });
+      const fan0 = useExact ? WT.buildTrajFan(SHELL, aim.yA, heli ? -35 : -5, 45, vAir, maxR + 50, aim.yA - heliAgl - 1000) : null;
+      for (let rng = stepR; rng <= maxR; rng += stepR) {
         let elev;
         if (tr0) {
           const y = WT.atDist(tr0, "y", rng);
           if (!isFinite(y)) break;
           elev = Math.atan((aim.yA - y) / rng);
         } else {
-          const sols = WT.solveExact(SHELL, rng, 0, aim.yA, -5, 45);
+          const sols = fan0.solve(SHELL, rng, heli ? -heliAgl : 0);
           if (!sols.length) break;
-          elev = sols[0];
+          elev = sols[0][0];
         }
-        const dy = at(elev);
+        const dy = at(elev - (heli ? Math.atan2(-heliAgl, rng) : 0));
         if (dy > r - 10) break;
-        const major = rng % 400 === 0;
+        const major = heli ? (rng % 1000 === 0) : (rng % 400 === 0);
         if (dy > 2) {
           ctx.beginPath(); ctx.moveTo(cx - (major ? 16 : 9), cy + dy); ctx.lineTo(cx - 2, cy + dy); ctx.stroke();
-          if (major) { ctx.textAlign = "right"; ctx.fillText(String(rng / 100), cx - 19, cy + dy + 3.5); ctx.textAlign = "left"; }
+          if (major) { ctx.textAlign = "right"; ctx.fillText(heli ? `${(rng / 1000).toFixed(0)}km` : String(rng / 100), cx - 19, cy + dy + 3.5); ctx.textAlign = "left"; }
         }
       }
     }
 
     // Exact firing solution ticks for target B
     const losAng = Math.atan2(aim.dy, aim.d), milStr = rad => (rad * 3200 / Math.PI).toFixed(1);
+    const azDeg = (((Math.atan2(B.x - A.x, B.z - A.z) / DEG) % 360) + 360) % 360;
     aim.sols.forEach((q, i) => {
       const p = project(B.x, aim.yA + aim.d * Math.tan(q.e), B.z);
       if (!p) return;
@@ -3164,17 +4666,22 @@ const V3 = (() => {
       ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(p[0] - 13, p[1]); ctx.lineTo(p[0] + 13, p[1]); ctx.moveTo(p[0], p[1] - 5); ctx.lineTo(p[0], p[1] + 5); ctx.stroke();
       ctx.font = "bold 11.5px ui-monospace,Consolas,monospace";
-      ctx.fillText(`${aim.sols.length > 1 ? (i ? "曲射" : "直射") : "瞄准点"} +${milStr(q.e - losAng)}密位 (${(aim.d * Math.tan(q.e) - aim.dy).toFixed(1)}m)${q.blocked == null ? "" : " 受阻"}`, p[0] + 16, p[1] + 4);
+      if (heli) {
+        const deg = q.e / DEG;
+        ctx.fillText(`方位 ${azDeg.toFixed(1).padStart(5, "0")}° · 仰角 ${deg >= 0 ? "+" : ""}${deg.toFixed(2)}° (+${milStr(q.e - losAng)}mil)${q.blocked == null ? "" : " 受阻"}`, p[0] + 16, p[1] + 4);
+      } else {
+        ctx.fillText(`${aim.sols.length > 1 ? (i ? "曲射" : "直射") : "瞄准点"} +${milStr(q.e - losAng)}密位 (${(aim.d * Math.tan(q.e) - aim.dy).toFixed(1)}m)${q.blocked == null ? "" : " 受阻"}`, p[0] + 16, p[1] + 4);
+      }
     });
     ctx.restore();
 
     ctx.fillStyle = "#dde3e8";
     ctx.font = "12px ui-monospace,Consolas,monospace";
-    ctx.fillText(`炮长瞄准镜 · 距离 B ${aim.d.toFixed(0)} m · 倍率 ${cam.zoom.toFixed(1)}×（滚轮缩放）${aim.sols.length ? "" : " · 当前射界无解"}`, 12, H - 14);
+    ctx.fillText(`${heli ? `机载瞄准镜 · 方位 ${azDeg.toFixed(1).padStart(5, "0")}° · 离地 +${heliAgl.toFixed(0)}m` : "炮长瞄准镜"} · 距离 B ${aim.d.toFixed(0)} m · 倍率 ${cam.zoom.toFixed(1)}×（滚轮缩放）${aim.sols.length ? "" : " · 当前射界无解"}`, 12, H - 14);
   }
 
   function drawOverlay() {
-    const [W, H] = resize(ov), ctx = octx, Tr = MAP.Tr;
+    const [W, H] = resize(ov), ctx = octx, Tr = MAP.Tr, heli = isHeli();
     ctx.clearRect(0, 0, W, H);
     ctx.font = "bold 12px system-ui"; ctx.lineWidth = 2;
     const dot = (p, col, label, r = 6) => {
@@ -3184,7 +4691,13 @@ const V3 = (() => {
     };
     const ready = aimReady();
     if (mode === "sight" && ready) { drawSight(ctx, W, H); return; }
-    if (!ready) for (const [pt, label, col] of [[A, "A", "#e0a33a"], [B, "B", "#4fb3e8"]]) if (pt) dot(project(pt.x, Tr.heightAt(pt.x, pt.z) + 25, pt.z), col, label);
+    if (!ready && MAP.meta && MAP.meta.helipads && ($("showCaps").checked || heli)) {
+      for (const pd of MAP.meta.helipads) dot(project(pd.x, pd.y + 18, pd.z), pd.team === 1 ? "#4fb3e8" : "#f09648", pd.short, 4.5);
+    }
+    if (!ready) {
+      if (A) dot(project(A.x, groundAt(Tr, A.x, A.z) + (heli ? Math.max(25, heliAgl) : 25), A.z), "#e0a33a", heli ? `A (+${heliAgl.toFixed(0)}m)` : "A");
+      if (B) dot(project(B.x, groundAt(Tr, B.x, B.z) + 25, B.z), "#4fb3e8", "B");
+    }
     const hp = highShown();
     if (hp) dot(project(hp.x, hp.h + 25, hp.z), HIGH_COLOR, `最高点 ${hp.h.toFixed(1)} m`, 5);
     if (aim && $("showArc").checked) drawArcs(ctx, ready);
@@ -3197,23 +4710,29 @@ const V3 = (() => {
     ctx.moveTo(cx - 40, cy); ctx.lineTo(cx - 6, cy); ctx.moveTo(cx + 6, cy); ctx.lineTo(cx + 40, cy); ctx.moveTo(cx, cy + 6); ctx.lineTo(cx, cy + 40);
     ctx.stroke();
     const losAng = Math.atan2(aim.dy, aim.d), mil = r => (r * 3200 / Math.PI).toFixed(1);
+    const azDeg = (((Math.atan2(B.x - A.x, B.z - A.z) / DEG) % 360) + 360) % 360;
     aim.sols.forEach((q, i) => {
       const p = project(B.x, aim.yA + aim.d * Math.tan(q.e), B.z);
       if (!p) return;
       const col = q.blocked == null ? (i ? "#e98a3c" : "#e0a33a") : "#e2574c";
       ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(p[0] - 14, p[1]); ctx.lineTo(p[0] + 14, p[1]); ctx.moveTo(p[0], p[1] - 5); ctx.lineTo(p[0], p[1] + 5); ctx.stroke();
       ctx.fillStyle = col;
-      ctx.fillText(`${aim.sols.length > 1 ? (i ? "高抛曲射" : "低伸直射") : "瞄准"} +${mil(q.e - losAng)} 密位，高于 B ${(aim.d * Math.tan(q.e) - aim.dy).toFixed(2)} m${q.blocked == null ? "" : " [受阻]"}`, p[0] + 18, p[1] + 4);
+      if (heli) {
+        const deg = q.e / DEG;
+        ctx.fillText(`罗盘 ${azDeg.toFixed(1).padStart(5, "0")}° · 机头仰角 ${deg >= 0 ? "+" : ""}${deg.toFixed(2)}°（上抬 +${mil(q.e - losAng)} 密位，高于 B ${(aim.d * Math.tan(q.e) - aim.dy).toFixed(1)} m）${q.blocked == null ? "" : " [受阻]"}`, p[0] + 18, p[1] + 4);
+      } else {
+        ctx.fillText(`${aim.sols.length > 1 ? (i ? "高抛曲射" : "低伸直射") : "瞄准"} +${mil(q.e - losAng)} 密位，高于 B ${(aim.d * Math.tan(q.e) - aim.dy).toFixed(2)} m${q.blocked == null ? "" : " [受阻]"}`, p[0] + 18, p[1] + 4);
+      }
     });
     ctx.fillStyle = "#fff";
-    ctx.fillText(`A → B 炮口视角：距离 ${aim.d.toFixed(0)} m，视场角 ${cam.aimFov.toFixed(1)}°（滚轮缩放）${aim.sols.length ? "" : " · 无射击诸元"}`, 12, H - 14);
+    ctx.fillText(`${heli ? `A → B 空中机头视角（方位 ${azDeg.toFixed(1).padStart(5, "0")}°，离地 +${heliAgl.toFixed(0)}m）` : "A → B 炮口视角"}：距离 ${aim.d.toFixed(0)} m，视场角 ${cam.aimFov.toFixed(1)}°（滚轮缩放）${aim.sols.length ? "" : " · 无射击诸元"}`, 12, H - 14);
   }
 
   function hiddenFrom(p) {
-    const T = MAP.Tr, N = 40;
+    const T = MAP.Tr, Ta = MAP.Tair, N = 40;
     for (let k = 1; k < N; k++) {
       const f = k / N * 0.985, x = eye[0] + (p[0] - eye[0]) * f, y = eye[1] + (p[1] - eye[1]) * f, z = eye[2] + (p[2] - eye[2]) * f;
-      if (T.inside(x, z) && T.heightAt(x, z) > y + 0.3) return true;
+      if ((T.inside(x, z) || (Ta && Ta.inside(x, z))) && WT.surfHeight(T, x, z) > y + 0.3) return true;
     }
     return false;
   }
@@ -3269,10 +4788,15 @@ const V3 = (() => {
 
   function pick(px, py) {
     if (!INV || !MAP) return null;
-    const nx = px / cv.clientWidth * 2 - 1, ny = 1 - py / cv.clientHeight * 2, T = MAP.Tr;
+    const nx = px / cv.clientWidth * 2 - 1, ny = 1 - py / cv.clientHeight * 2, T = MAP.Tr, heli = isHeli();
     const un = z => { const v = xform(INV, nx, ny, z); return [v[0] / v[3], v[1] / v[3], v[2] / v[3]]; };
     const a = un(-1), b = un(1), len = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]), dir = [0, 1, 2].map(i => (b[i] - a[i]) / len);
-    const lo = [T.ox, T.lo - 1, T.oz], hi = [T.x1, T.hi + 1, T.z1];
+    const Ta = MAP.Tair;
+    const alo = Ta ? Math.min(T.lo, Ta.lo) : T.lo, ahi = Ta ? Math.max(T.hi, Ta.hi) : T.hi;
+    const ax0 = Ta ? Math.min(-25000, Ta.ox) : -25000, ax1 = Ta ? Math.max(25000, Ta.x1) : 25000;
+    const az0 = Ta ? Math.min(-25000, Ta.oz) : -25000, az1 = Ta ? Math.max(25000, Ta.z1) : 25000;
+    const lo = heli ? [ax0, Math.min(alo - 80, -80), az0] : [T.ox, T.lo - 1, T.oz];
+    const hi = heli ? [ax1, ahi + 80, az1] : [T.x1, T.hi + 1, T.z1];
     let t0 = 0, t1 = len;
     for (let i = 0; i < 3; i++) {
       if (Math.abs(dir[i]) < 1e-12) { if (a[i] < lo[i] || a[i] > hi[i]) return null; continue; }
@@ -3281,8 +4805,8 @@ const V3 = (() => {
       t0 = Math.max(t0, p); t1 = Math.min(t1, q);
     }
     if (t0 > t1) return null;
-    const above = t => a[1] + dir[1] * t - T.heightAt(a[0] + dir[0] * t, a[2] + dir[2] * t);
-    const step = T.cell / 2;
+    const above = t => a[1] + dir[1] * t - groundAt(T, a[0] + dir[0] * t, a[2] + dir[2] * t);
+    const step = Math.max(T.cell / 2, (t1 - t0) / 1400);
     let prev = t0;
     for (let t = t0; t <= t1 + step; t += step) {
       const tc = Math.min(t, t1);
@@ -3299,15 +4823,18 @@ const V3 = (() => {
   let drag3d = null, lastTouch3d = 0;
   const local = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
   const panOrbitBy = (dx, dy) => {
-    const k = 2 * cam.dist * Math.tan(ORBIT_FOV * DEG / 2) / Math.max(1, cv.clientHeight), s = Math.sin(cam.yaw), c = Math.cos(cam.yaw), T = MAP.T;
-    cam.tx = Math.min(T.x1, Math.max(T.ox, cam.tx - c * dx * k + s * dy * k));
-    cam.tz = Math.min(T.z1, Math.max(T.oz, cam.tz + s * dx * k + c * dy * k));
-    cam.ty = T.heightAt(cam.tx, cam.tz);
+    const k = 2 * cam.dist * Math.tan(ORBIT_FOV * DEG / 2) / Math.max(1, cv.clientHeight), s = Math.sin(cam.yaw), c = Math.cos(cam.yaw), T = MAP.T, Ta = MAP.Tair;
+    const bx0 = Ta ? Ta.ox : T.ox, bx1 = Ta ? Ta.x1 : T.x1, bz0 = Ta ? Ta.oz : T.oz, bz1 = Ta ? Ta.z1 : T.z1;
+    const minX = isHeli() ? Math.min(-25000, bx0) : bx0, maxX = isHeli() ? Math.max(25000, bx1) : bx1;
+    const minZ = isHeli() ? Math.min(-25000, bz0) : bz0, maxZ = isHeli() ? Math.max(25000, bz1) : bz1;
+    cam.tx = Math.min(maxX, Math.max(minX, cam.tx - c * dx * k + s * dy * k));
+    cam.tz = Math.min(maxZ, Math.max(minZ, cam.tz + s * dx * k + c * dy * k));
+    cam.ty = groundAt(T, cam.tx, cam.tz);
   };
   function stepZoom(f) {
     if (mode === "sight" && aimReady()) cam.zoom = Math.min(24, Math.max(1, cam.zoom / f));
     else if (mode === "aim" && aimReady()) cam.aimFov = Math.min(80, Math.max(0.5, cam.aimFov * f));
-    else cam.dist = Math.min(40000, Math.max(5, cam.dist * f));
+    else cam.dist = Math.min(75000, Math.max(5, cam.dist * f));
     request();
   }
 
@@ -3318,11 +4845,11 @@ const V3 = (() => {
   });
   addEventListener("mousemove", e => {
     if (Date.now() - lastTouch3d < 500) return;
-    if (mode !== "2d" && MAP && e.target === cv) {
+    if (mode !== "2d" && MAP && e.target === cv && !(drag3d && drag3d.moved)) {
       if (mode === "sight" && aimReady()) { $("hud").textContent = ""; }
       else {
         const p = pick(...local(e));
-        $("hud").textContent = p ? `X ${p.x.toFixed(1)}  Z ${p.z.toFixed(1)}  高程 ${MAP.Tr.heightAt(p.x, p.z).toFixed(2)} m` + (A ? `   距 A ${Math.hypot(p.x - A.x, p.z - A.z).toFixed(1)} m` : "") : "";
+        $("hud").textContent = p ? `X ${p.x.toFixed(0)}  Z ${p.z.toFixed(0)}  高程 ${groundAt(MAP.Tr, p.x, p.z).toFixed(1)} m` + (A ? `   距 A ${Math.hypot(p.x - A.x, p.z - A.z).toFixed(0)} m` : "") : "";
       }
     }
     if (!drag3d || mode === "2d") return;
@@ -3344,7 +4871,7 @@ const V3 = (() => {
   });
   cv.addEventListener("dblclick", e => {
     const p = pick(...local(e));
-    if (p && !aimReady()) { cam.tx = p.x; cam.tz = p.z; cam.ty = MAP.T.heightAt(p.x, p.z); request(); }
+    if (p && !aimReady()) { cam.tx = p.x; cam.tz = p.z; cam.ty = groundAt(MAP.T, p.x, p.z); request(); }
   });
   cv.addEventListener("contextmenu", e => e.preventDefault());
   cv.addEventListener("wheel", e => {
@@ -3421,7 +4948,7 @@ const V3 = (() => {
           const p = pick(ts.px0, ts.py0);
           if (p) {
             if (touchPlaceMode === "pan" && now - lastTap < 320 && Math.hypot(ts.px0 - lx, ts.py0 - ly) < 28) {
-              cam.tx = p.x; cam.tz = p.z; cam.ty = MAP.T.heightAt(p.x, p.z); request();
+              cam.tx = p.x; cam.tz = p.z; cam.ty = groundAt(MAP.T, p.x, p.z); request();
               lastTap = 0;
             } else {
               lastTap = now; lx = ts.px0; ly = ts.py0;
@@ -3452,11 +4979,12 @@ const V3 = (() => {
   function update() {
     if (!MAP || !res) return;
     if (!gpuMap || gpuMap.img !== MAP.img) uploadMap();
+    uploadAir(); uploadPads();
     uploadObjects(); uploadOverlay(); uploadZones();
     try { uploadDetail(); } catch (e) { det = null; setStatus(`地表细节贴图加载失败：${e.message}`, true); }
     buildLines(); request();
   }
-  function fit(cx, cz, span) { cam.tx = cx; cam.tz = cz; cam.ty = MAP.T.heightAt(cx, cz); cam.dist = span * 1.1; cam.yaw = 0; cam.pitch = 0.9; }
+  function fit(cx, cz, span) { cam.tx = cx; cam.tz = cz; cam.ty = groundAt(MAP.T, cx, cz); cam.dist = span * 1.1; cam.yaw = 0; cam.pitch = 0.9; }
   function getCam() { return { tx: +cam.tx.toFixed(2), ty: +cam.ty.toFixed(2), tz: +cam.tz.toFixed(2), yaw: +cam.yaw.toFixed(4), pitch: +cam.pitch.toFixed(4), dist: +cam.dist.toFixed(2), aimFov: +cam.aimFov.toFixed(2), zoom: +cam.zoom.toFixed(2) }; }
   function setCam(c) { if (!c) return; for (const k of ["tx", "ty", "tz", "yaw", "pitch", "dist", "aimFov", "zoom"]) if (isFinite(c[k])) cam[k] = c[k]; }
   return { get mode() { return mode; }, setMode, update, fit, getCam, setCam, stepZoom };

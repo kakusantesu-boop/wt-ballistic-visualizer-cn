@@ -65,6 +65,11 @@ impl Store {
             Store::Pack { files, .. } => format!("bundled data ({} files)", files.len()),
         }
     }
+
+    #[cfg(test)]
+    pub fn open_pack(path: &Path) -> Result<Option<Store>> {
+        Ok(read_index(path)?.map(|files| Store::Pack { file: path.to_path_buf(), files }))
+    }
 }
 
 /// The pack index of a file, None when it has no pack.

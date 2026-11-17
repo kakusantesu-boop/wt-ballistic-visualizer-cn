@@ -18,6 +18,11 @@ rust/shots/
 
 # Upstream datamine cache & raw CSVs (patched localized JS in i18n_src/patched_js/ is tracked)
 /i18n_src/wt-datamine/
+/i18n_src/wt-unpack-src/
+/i18n_src/airspace_raw/
+/i18n_src/airspace_xz_cache/
+/i18n_src/patched_js/maps/*.air.hpred
+/i18n_src/patched_js/maps/*.air.jpg
 /i18n_src/*.csv
 
 # Web runtime unpacked map assets, SQLite databases, and bootstrap credentials (never commit)

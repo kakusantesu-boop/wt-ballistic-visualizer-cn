@@ -62,6 +62,24 @@ pub fn compose(map: &LoadedMap) -> RgbaImage {
     out
 }
 
+/// Outer airspace satellite colour map multiplied by LandMesh hillshade relief.
+pub fn compose_air(t_air: &Terrain, color: Option<&RgbaImage>) -> RgbaImage {
+    let Some(col) = color else { return shade(t_air, false) };
+    let s = if col.width() == t_air.w as u32 && col.height() == t_air.hh as u32 {
+        shade(t_air, true)
+    } else {
+        image::imageops::resize(&shade(t_air, true), col.width(), col.height(), image::imageops::FilterType::Triangle)
+    };
+    let mut out = col.clone();
+    for (o, m) in out.pixels_mut().zip(s.pixels()) {
+        for c in 0..3 {
+            o.0[c] = (o.0[c] as u16 * m.0[c] as u16 / 255) as u8;
+        }
+        o.0[3] = 255;
+    }
+    out
+}
+
 /// Water over the bare ground below the level's water plane; deeper is darker and more opaque.
 pub fn water(t: &Terrain, level: f64) -> RgbaImage {
     let (w, h) = (t.w, t.hh);

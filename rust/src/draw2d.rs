@@ -17,6 +17,16 @@ pub fn map(v: &mut Viewer, b: Bounds<Pixels>, window: &mut Window, cx: &mut App)
     // a screen rect for a world extent starting at the map's top-left corner (x0, z top)
     let rect = |v: &Viewer, x0: f64, ztop: f64, wm: f64, hm: f64| Bounds::new(point(px(ox + v.sx(x0)), px(oy + v.sy(ztop))), gpui::size(px((wm * v.view.s) as f32), px((hm * v.view.s) as f32)));
     let ext = (t.w as f64 * c, t.hh as f64 * c);
+    if let (Some(ta), Some(la)) = (&m.t_air, &v.air_img) {
+        let ca = ta.cell;
+        let ra = rect(v, ta.ox - ca / 2.0, ta.z1 + ca / 2.0, ta.w as f64 * ca, ta.hh as f64 * ca);
+        paint::image(window, &la.img, ra);
+        if v.sw.on(Sw::Water) {
+            if let Some(wa) = &v.air_water {
+                paint::image(window, &wa.img, ra);
+            }
+        }
+    }
     if let Some(l) = &v.map_img {
         paint::image(window, &l.img, rect(v, t.ox - c / 2.0, t.z1 + c / 2.0, ext.0, ext.1));
     }
@@ -32,8 +42,16 @@ pub fn map(v: &mut Viewer, b: Bounds<Pixels>, window: &mut Window, cx: &mut App)
         paint::image(window, &l.img, rect(v, o.x0, o.z0 + o.size, o.size, o.size));
     }
     let sp = |v: &Viewer, x: f64, z: f64| p(ox + v.sx(x), oy + v.sy(z));
-    if v.sw.on(Sw::Grid) && v.view.s > 0.05 {
-        let step = if v.view.s > 0.4 { 100.0 } else { 500.0 };
+    let heli = v.is_heli();
+    if heli {
+        let bx0 = ox + v.sx(t.ox);
+        let bz0 = oy + v.sy(t.z1);
+        let bx1 = ox + v.sx(t.x1);
+        let bz1 = oy + v.sy(t.oz);
+        paint::stroke(window, &[p(bx0, bz0), p(bx1, bz0), p(bx1, bz1), p(bx0, bz1)], 1.2, color(0xffffff, 0.22), Some(&[6.0, 5.0]), true);
+    }
+    if v.sw.on(Sw::Grid) && v.view.s > 0.005 {
+        let step = if v.view.s > 0.4 { 100.0 } else if v.view.s > 0.05 { 500.0 } else { 2000.0 };
         let (x0, x1) = ((v.view.cx - w as f64 / 2.0 / v.view.s) / step, (v.view.cx + w as f64 / 2.0 / v.view.s) / step);
         let (z0, z1) = ((v.view.cz - h as f64 / 2.0 / v.view.s) / step, (v.view.cz + h as f64 / 2.0 / v.view.s) / step);
         let g = color(0xffffff, 0.08);
@@ -46,13 +64,14 @@ pub fn map(v: &mut Viewer, b: Bounds<Pixels>, window: &mut Window, cx: &mut App)
             paint::stroke(window, &[p(ox, y), p(ox + w, y)], 1.0, g, None, false);
         }
     }
-    if v.sw.on(Sw::Caps) {
-        for a in v.areas() {
+    if v.sw.on(Sw::Caps) || heli {
+        let areas = v.areas();
+        for a in &areas {
             if a.kind == "battle" || a.kind == "kill" {
                 continue; // those two are in the zone layer
             }
-            let col = color(scene::area_color(&a), 1.0);
-            match scene::area_shape(&a) {
+            let col = color(scene::area_color(a), 1.0);
+            match scene::area_shape(a) {
                 Shape::Poly(q) => {
                     let pts: Vec<_> = q.iter().map(|q| sp(v, q[0], q[1])).collect();
                     if a.kind == "capture" {
@@ -66,6 +85,67 @@ pub fn map(v: &mut Viewer, b: Bounds<Pixels>, window: &mut Window, cx: &mut App)
                         paint::fill(window, &pts, color(0xf2d14b, 0.15));
                     }
                     paint::stroke(window, &pts, 1.5, col, None, true);
+                }
+            }
+        }
+        for (lbl, cx_, cz_) in scene::capture_zones_labeled(&areas) {
+            let short = lbl.chars().last().unwrap_or('A').to_string();
+            paint::badge(window, cx, sp(v, cx_, cz_), &short, color(0xd8b236, 0.92), color(0x111111, 1.0));
+        }
+        for pd in &m.meta.helipads {
+            let hc = if pd.team == 1 { 0x4fb3e8 } else { 0xf09648 };
+            let (ux, uz) = pd.basis();
+            let (hx, hz) = pd.extents();
+            let wpt = |lx: f64, lz: f64| sp(v, pd.x + lx * ux - lz * uz, pd.z + lx * uz + lz * ux);
+            if hx * v.view.s >= 9.0 {
+                let apron = [wpt(-hx, -hz), wpt(hx, -hz), wpt(hx, hz), wpt(-hx, hz)];
+                paint::fill(window, &apron, color(0x888e88, 0.16));
+                paint::stroke(window, &apron, 1.2, color(hc, 0.52), None, true);
+            }
+            if hx * v.view.s >= 26.0 {
+                let pf = v.helipad_lib.as_ref().and_then(|lib| lib.prefabs.get(&pd.uc));
+                let rwy = pf.map_or((hx - 14.0).max(80.0), |p| p.rwy as f64);
+                let strip = [wpt(-rwy, -13.5), wpt(rwy, -13.5), wpt(rwy, 13.5), wpt(-rwy, 13.5)];
+                paint::fill(window, &strip, color(0x23272d, 0.78));
+                paint::stroke(window, &[wpt(-rwy + 6.0, 0.0), wpt(rwy - 6.0, 0.0)], 1.0, color(0xeef2f6, 0.60), Some(&[5.0, 5.0]), false);
+                if let Some(pf) = pf {
+                    for &[sx_, sz_] in &pf.spawns {
+                        let (sx_, sz_) = (sx_ as f64, sz_ as f64);
+                        if sx_.hypot(sz_) > 16.0 {
+                            let h_sq = [wpt(sx_ - 7.2, sz_ - 7.2), wpt(sx_ + 7.2, sz_ - 7.2), wpt(sx_ + 7.2, sz_ + 7.2), wpt(sx_ - 7.2, sz_ + 7.2)];
+                            paint::fill(window, &h_sq, color(0x3a3f46, 0.85));
+                            paint::stroke(window, &h_sq, 1.0, color(0xeec43e, 0.82), None, true);
+                        }
+                    }
+                }
+            }
+            let c = sp(v, pd.x, pd.z);
+            let r = 8.0f32;
+            let sq = [point(c.x - px(r), c.y - px(r)), point(c.x + px(r), c.y - px(r)), point(c.x + px(r), c.y + px(r)), point(c.x - px(r), c.y + px(r))];
+            paint::fill(window, &sq, color(0x0c0e10, 0.88));
+            paint::stroke(window, &sq, 2.0, color(hc, 1.0), None, true);
+            let yr = pd.yaw * crate::core::DEG;
+            let tip = p(f32::from(c.x) + yr.sin() as f32 * 20.0, f32::from(c.y) - yr.cos() as f32 * 20.0);
+            paint::stroke(window, &[c, tip], 2.0, color(hc, 1.0), None, false);
+            paint::text(window, cx, "H", point(c.x - px(4.5), c.y - px(7.5)), color(hc, 1.0), 11.0, true);
+            paint::text(window, cx, &format!("{} ({:.0}m)", pd.short, pd.y), point(c.x + px(11.), c.y - px(8.)), color(hc, 1.0), 11.0, true);
+        }
+    }
+    if heli {
+        if let Some(a) = v.a {
+            let ca = sp(v, a.x, a.z);
+            for km in [2000.0, 4000.0, 6000.0] {
+                let rad = (km * v.view.s) as f32;
+                if rad > 18.0 && rad < w.max(h) * 1.5 {
+                    paint::stroke(window, &paint::circle_pts(ca, rad), 1.0, color(0x52b6ec, 0.25), Some(&[4.0, 5.0]), true);
+                    paint::text(window, cx, &format!("{}km", (km / 1000.0) as i32), point(ca.x + px(4.), ca.y - px(rad + 14.)), color(0x8bc9ec, 0.75), 10.5, false);
+                }
+            }
+            if let Some(max_s) = v.heli_max_s {
+                let rad = (max_s * v.view.s) as f32;
+                if rad > 18.0 && rad < w.max(h) * 2.0 {
+                    paint::stroke(window, &paint::circle_pts(ca, rad), 1.6, color(0xf09648, 0.75), Some(&[7.0, 5.0]), true);
+                    paint::text(window, cx, &format!("极限射程 {:.2}km", max_s / 1000.0), point(ca.x + px(6.), ca.y + px(rad - 16.)), color(0xf09648, 0.92), 11.0, true);
                 }
             }
         }
@@ -89,7 +169,8 @@ pub fn map(v: &mut Viewer, b: Bounds<Pixels>, window: &mut Window, cx: &mut App)
             paint::badge(window, cx, sp(v, x, z), &(i + 1).to_string(), fill, ink);
         }
     }
-    for (pt, label, col) in [(v.a, "A", COL_A), (v.b, "B", COL_BPT)] {
+    let a_lbl = if heli { format!("A (+{:.0}m)", v.params_pub(cx).gun_h) } else { "A".into() };
+    for (pt, label, col) in [(v.a, a_lbl.as_str(), COL_A), (v.b, "B", COL_BPT)] {
         if let Some(q) = pt {
             let c = sp(v, q.x, q.z);
             paint::dot(window, c, 6.0, Some(color(col, 1.0)), Some((color(0, 1.0), 2.0)));
@@ -119,7 +200,7 @@ pub fn profile(v: &mut Viewer, b: Bounds<Pixels>, window: &mut Window, cx: &mut 
     let (d, dir) = (aim.d, aim.dir);
     let l = d * 1.08;
     let n = 1200.min((l / (t.cell / 2.0)).ceil() as usize).max(2);
-    let samp = |tt: &crate::core::Terrain| (0..=n).map(|i| { let s = l * i as f64 / n as f64; (s, tt.height_at(a.x + dir.0 * s, a.z + dir.1 * s)) }).collect::<Vec<_>>();
+    let samp = |tt: &crate::core::Terrain| (0..=n).map(|i| { let s = l * i as f64 / n as f64; (s, m.surf_at(tt, a.x + dir.0 * s, a.z + dir.1 * s)) }).collect::<Vec<_>>();
     let (prof, prof_r, prof_v) = (samp(&m.t), samp(&m.tr), samp(&m.tv));
     let mut lo = prof.iter().map(|q| q.1).fold(f64::MAX, f64::min).min(aim.y_a).min(aim.y_b);
     let mut hi = prof_v.iter().map(|q| q.1).fold(f64::MIN, f64::max).max(aim.y_a).max(aim.y_b);

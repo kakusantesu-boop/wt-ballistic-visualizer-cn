@@ -10,23 +10,36 @@ import numpy as np
 ROOT = Path(__file__).resolve().parent.parent
 LANG_DIR = ROOT / "i18n_src"
 DM_ACES = LANG_DIR / "wt-datamine" / "aces.vromfs.bin_u"
+DM_MIS = LANG_DIR / "wt-datamine" / "mis.vromfs.bin_u"
+DM_CHAR = LANG_DIR / "wt-datamine" / "char.vromfs.bin_u"
 TANK_DIR = DM_ACES / "gamedata" / "units" / "tankmodels"
 WEAP_DIR = DM_ACES / "gamedata" / "weapons" / "groundmodels_weapons"
+AIR_WEAP_DIR = DM_ACES / "gamedata" / "weapons"
+FM_DIR = DM_ACES / "gamedata" / "flightmodels"
 LITE_EXE = ROOT / "dist" / "WT-Ballistic-Visualizer-Lite.exe"
 
 LITE_A_MODEL = "leopard_2a4"
 
 NATION_TAGS = {
     "us": "美",
+    "usa": "美",
     "germ": "德",
+    "germany": "德",
     "ussr": "苏",
     "uk": "英",
+    "britain": "英",
     "jp": "日",
+    "japan": "日",
     "cn": "中",
+    "china": "中",
     "it": "意",
+    "italy": "意",
     "fr": "法",
+    "france": "法",
     "sw": "瑞",
+    "sweden": "瑞",
     "il": "以",
+    "israel": "以",
 }
 
 SUBTREE_GLYPHS = {
@@ -204,18 +217,25 @@ def parse_rocket_shell(rb: dict, outer_b: dict | None, ammo_key: str) -> dict | 
     v_start_raw = rb.get("startSpeed") if rb.get("startSpeed") is not None else b.get("speed")
     v_start = num(v_start_raw, 0.0)
     v_end = num(rb.get("endSpeed"), 0.0)
+    v_max_stat = num(rb.get("maxSpeed"), 0.0)
 
     guided = bool(rb.get("operated") or rb.get("guidanceType") or rb.get("autoAiming"))
-    cx = opt_pos(rb.get("CxK")) or opt_pos(rb.get("dragCx")) or opt_pos(b.get("Cx"))
+    cx_k = opt_pos(rb.get("CxK"))
+    cx = cx_k or opt_pos(rb.get("dragCx")) or opt_pos(b.get("Cx"))
     max_dist = num(rb.get("maxDistance") or rb.get("rangeMax") or b.get("maxDistance"), 0.0)
+    t_life = num(rb.get("timeLife") or b.get("timeLife"), 0.0)
+    disp_deg = num(rb.get("maxDeltaAngle") or b.get("maxDeltaAngle"), 0.0)
 
     if force0 > 0.0 and t_fire0 > 0.0:
-        if v_end > 0.0:
+        dv0 = force0 / (0.5 * (m + m_end0)) * t_fire0
+        dv1 = (force1 / (0.5 * (m_end0 + m_end1)) * t_fire1) if (force1 > 0.0 and t_fire1 > 0.0) else 0.0
+        v_imp = v_start + dv0 + dv1
+        if 0.0 < v_max_stat < 1800.0:
+            v_disp = v_max_stat
+        elif 0.0 < v_end < 1800.0:
             v_disp = v_end
         else:
-            dv0 = force0 / (0.5 * (m + m_end0)) * t_fire0
-            dv1 = (force1 / (0.5 * (m_end0 + m_end1)) * t_fire1) if (force1 > 0.0 and t_fire1 > 0.0) else 0.0
-            v_disp = v_start + dv0 + dv1
+            v_disp = v_imp
         if v_disp <= 0.0:
             return None
         return {
@@ -236,12 +256,16 @@ def parse_rocket_shell(rb: dict, outer_b: dict | None, ammo_key: str) -> dict | 
                 "tFire1": round(float(t_fire1), 4),
                 "mEnd1": round(float(m_end1), 4),
                 "tDelay": round(float(t_delay), 4),
+                "tLife": round(float(t_life), 3),
+                "maxDist": round(float(max_dist), 1),
+                "disp": round(float(disp_deg), 3),
+                "cxMach": bool(cx_k is not None),
                 "guided": guided,
             },
         }
     else:
         # Separated booster dart (e.g. Pantsir 95Ya6 / Starstreak) or pure unpowered rocket entry
-        v_launch = v_end if v_end > 0.0 else v_start
+        v_launch = v_max_stat if 0.0 < v_max_stat < 1800.0 else (v_end if 0.0 < v_end < 1800.0 else v_start)
         if v_launch <= 0.0:
             return None
         dart_m = opt_pos(rb.get("warheadMass")) or m
@@ -263,6 +287,10 @@ def parse_rocket_shell(rb: dict, outer_b: dict | None, ammo_key: str) -> dict | 
                 "tFire1": 0.0,
                 "mEnd1": float(dart_m),
                 "tDelay": 0.0,
+                "tLife": round(float(t_life), 3),
+                "maxDist": round(float(max_dist), 1),
+                "disp": round(float(disp_deg), 3),
+                "cxMach": bool(cx_k is not None),
                 "guided": guided,
             } if guided else None,
         }
@@ -576,6 +604,7 @@ def extract_all_tanks_from_datamine(units: dict[str, tuple[str, str]], weap_lang
 
         tanks.append({
             "id": tid,
+            "kind": "ground",
             "name": display,
             "en": extra_search,
             "model": LITE_A_MODEL,
@@ -584,6 +613,327 @@ def extract_all_tanks_from_datamine(units: dict[str, tuple[str, str]], weap_lang
 
     estimate_cx(tanks)
     return tanks
+
+
+HELI_EXTRA_NICKNAMES = {
+    "ka_50": "卡50 ka50 黑鲨 black shark 直升机",
+    "ka_52": "卡52 ka52 短吻鳄 alligator 直升机",
+    "ka_29": "卡29 ka29 直升机",
+    "mi_4av": "米4 mi4 小母牛 直升机",
+    "mi_8": "米8 mi8 河马 hip 直升机",
+    "mi_24": "米24 mi24 雌鹿 hind 直升机",
+    "mi_28": "米28 mi28 浩劫 havoc 直升机",
+    "mi_35": "米35 mi35 雌鹿 直升机",
+    "z_9": "直9 z9 海豚 直升机",
+    "z_10": "直10 z10 霹雳火 武直10 直升机",
+    "z_19": "直19 z19 黑旋风 武直19 直升机",
+    "ah_1": "ah1 眼镜蛇 cobra 超级眼镜蛇 蝰蛇 直升机",
+    "uh_1": "uh1 休伊 huey 直升机",
+    "ah_64": "ah64 阿帕奇 apache 长弓 直升机",
+    "oh_58": "oh58 奇奥瓦 kiowa 直升机",
+    "ah_6": "ah6 小鸟 little bird 直升机",
+    "rah_66": "rah66 科曼奇 comanche 直升机",
+    "ah_60": "ah60 黑鹰 战鹰 black hawk 直升机",
+    "tiger": "虎式 虎UHT 虎HAD 虎HAP tiger 直升机",
+    "bo_105": "bo105 直升机",
+    "lynx": "山猫 lynx 直升机",
+    "rooivalk": "茶隼 rooivalk 直升机",
+    "a_129": "a129 芒古斯塔 猫鼬 mangusta 直升机",
+}
+
+
+def resolve_air_weapon_blk(rel_blk: str, cache: dict[str, dict | None]) -> tuple[dict | None, str]:
+    """Unwrap nested containers/*.blk up to 4 levels until reaching the actual weapon/rocketGun .blkx."""
+    cur = rel_blk.lstrip("/").replace("\\", "/")
+    for _ in range(5):
+        if not cur.endswith("x"):
+            cur_x = cur + "x"
+        else:
+            cur_x = cur
+        if cur_x not in cache:
+            p = DM_ACES / cur_x
+            cache[cur_x] = json.loads(p.read_text("utf-8")) if p.exists() else None
+        jd = cache[cur_x]
+        if not jd:
+            return None, Path(cur).stem
+        if jd.get("container") and isinstance(jd.get("blk"), str):
+            cur = jd["blk"].lstrip("/").replace("\\", "/")
+            continue
+        return jd, Path(cur).stem
+    return None, Path(cur).stem
+
+
+def extract_all_helicopters_from_datamine(units: dict[str, tuple[str, str]], weap_lang: dict[str, tuple[str, str]]) -> list[dict]:
+    wpcost_path = DM_CHAR / "config" / "wpcost.blkx"
+    wpcost = json.loads(wpcost_path.read_text("utf-8")) if wpcost_path.exists() else {}
+    air_cache: dict[str, dict | None] = {}
+
+    raw_helis = []
+    for f in sorted(FM_DIR.glob("*.blkx")):
+        stem = f.stem
+        low = stem.lower()
+        if any(ex in low for ex in ("_killstreak", "_tutorial", "_dummy", "_event0", "_ai")):
+            continue
+        if wpcost and stem not in wpcost and low not in wpcost:
+            continue
+        shop_hit = units.get(f"{low}_shop") or units.get(f"{low}_0") or units.get(low)
+        if not shop_hit or not (shop_hit[0] or shop_hit[1]):
+            continue
+
+        d = json.loads(f.read_text("utf-8"))
+        if "helicopter" not in d and not d.get("isHelicopter"):
+            continue
+
+        ccip_rk = bool(d.get("haveCCIPForRocket"))
+        sources = [d]
+        for pr in as_list((d.get("weapon_presets") or {}).get("preset")):
+            if isinstance(pr, dict) and isinstance(pr.get("blk"), str):
+                bp = pr["blk"].lstrip("/").replace("\\", "/")
+                if "empty" in bp.lower():
+                    continue
+                pf = DM_ACES / (bp + ("" if bp.endswith("x") else "x"))
+                if pf.exists():
+                    sources.append(json.loads(pf.read_text("utf-8")))
+
+        rocket_shells: list[dict] = []
+        seen_rk = set()
+        sec_mounts: dict[str, dict] = {}
+        sec_order: list[str] = []
+
+        for src in sources:
+            for sub in iter_dicts(src):
+                trig = str(sub.get("trigger", "")).lower()
+                bp = sub.get("blk")
+                if not isinstance(bp, str) or not trig or trig in ("countermeasures", "flares", "bombs", "torpedoes", "aam"):
+                    continue
+                if "dummy" in bp.lower():
+                    continue
+                wjd, wstem = resolve_air_weapon_blk(bp, air_cache)
+                if not wjd:
+                    continue
+                wlow = wstem.lower()
+                shells, is_heavy = extract_weapon_shells(wjd, wlow)
+                if not shells:
+                    continue
+
+                if trig == "rockets":
+                    for s in shells:
+                        s_copy = json.loads(json.dumps(s))
+                        # Ensure unguided rockets are never flagged guided
+                        if s_copy.get("rocket"):
+                            s_copy["rocket"]["guided"] = False
+                        cn_s, en_s = translate_shell_name(s_copy["id"], weap_lang)
+                        if cn_s == s_copy["id"]:
+                            cn_s2, en_s2 = translate_shell_name(wstem, weap_lang)
+                            if cn_s2 != wstem:
+                                cn_s, en_s = cn_s2, en_s2
+                        s_copy["name"] = cn_s
+                        s_copy["en"] = f"{en_s} {wstem}"
+                        s_copy["typeTitle"] = "非制导火箭弹" if s_copy["type"] == "rocket_tank" else translate_bullet_type(s_copy["type"], weap_lang)
+                        rk = s_copy.get("rocket") or {}
+                        dk = (s_copy["name"].lower(), round(s_copy["v0"], 1), round(rk.get("force0", 0.0), 0), round(s_copy.get("maxDist", 0.0), 0))
+                        if dk not in seen_rk:
+                            seen_rk.add(dk)
+                            rocket_shells.append(s_copy)
+                elif trig in ("cannon", "additional gun", "turret", "gunner0", "atgm"):
+                    if trig != "atgm" and not is_heavy:
+                        continue
+                    if wlow not in sec_mounts:
+                        s_list = []
+                        for s in shells:
+                            sc = json.loads(json.dumps(s))
+                            cn_s, en_s = translate_shell_name(sc["id"], weap_lang)
+                            if cn_s == sc["id"]:
+                                cn_s, en_s = translate_shell_name(wstem, weap_lang)
+                            sc["name"] = cn_s
+                            sc["en"] = en_s
+                            sc["typeTitle"] = translate_bullet_type(sc["type"], weap_lang)
+                            s_list.append(sc)
+                        sec_mounts[wlow] = {
+                            "weapon": wstem,
+                            "title": "空地导弹" if trig == "atgm" else translate_gun(wstem, weap_lang),
+                            "pitch": [-45.0, 45.0],
+                            "shells": s_list,
+                        }
+                        sec_order.append(wlow)
+
+        guns = []
+        if rocket_shells:
+            # Put higher-caliber / medium-to-heavy iconic rockets (like S-8KO, S-13OF, 90-1, FS70, Hydra-70) first
+            rocket_shells.sort(key=lambda x: (0 if 0.068 <= x["cal"] <= 0.14 else 1, -x["cal"]))
+            guns.append({
+                "weapon": "heli_unguided_rockets",
+                "title": "非制导火箭弹",
+                "pitch": [-45.0, 45.0],
+                "shells": rocket_shells,
+            })
+        for k in sec_order:
+            guns.append(sec_mounts[k])
+        if not guns:
+            continue
+
+        wp_entry = wpcost.get(stem) or wpcost.get(low) or {}
+        country = str(wp_entry.get("country", "")).lower().removeprefix("country_")
+        ntag = NATION_TAGS.get(country, country.upper() or "直")
+        raw_helis.append((stem, ntag, shop_hit, ccip_rk, guns))
+
+    prelim = []
+    name_counts = {}
+    for stem, ntag, shop_hit, ccip_rk, guns in raw_helis:
+        low = stem.lower()
+        en_shop = shop_hit[0]
+        cn_raw = shop_hit[1] or en_shop
+        cn_clean, badges = strip_wt_glyphs(cn_raw)
+        full_hit = units.get(f"{low}_0")
+        nick_extra = " ".join(v for k, v in HELI_EXTRA_NICKNAMES.items() if low.startswith(k) or k in low)
+        extra_parts = [
+            "直升机 武直 helicopter heli",
+            strip_wt_glyphs(en_shop)[0],
+            strip_wt_glyphs(full_hit[0])[0] if full_hit else "",
+            strip_wt_glyphs(full_hit[1])[0] if full_hit else "",
+            nick_extra,
+        ]
+        extra_search = " ".join(x for x in extra_parts if x)
+        base_display = f"[{ntag}·武直] {cn_clean}"
+        prelim.append((stem, en_shop, extra_search, ntag, cn_clean, badges, base_display, ccip_rk, guns))
+        name_counts[base_display] = name_counts.get(base_display, 0) + 1
+
+    helis = []
+    used = set()
+    for stem, en_shop, extra_search, ntag, cn_clean, badges, base_display, ccip_rk, guns in prelim:
+        if name_counts[base_display] > 1 and badges:
+            cand = f"[{ntag}·{badges[0]}·武直] {cn_clean}"
+        elif name_counts[base_display] > 1:
+            cand = f"{base_display} ({stem})"
+        else:
+            cand = base_display
+        if cand in used:
+            cand = f"{cand} ({stem})"
+        used.add(cand)
+        helis.append({
+            "id": f"heli_{stem}",
+            "kind": "heli",
+            "ccip": ccip_rk,
+            "name": cand,
+            "en": extra_search,
+            "model": LITE_A_MODEL,
+            "guns": guns,
+        })
+
+    estimate_cx(helis)
+    return helis
+
+
+def collect_helipads_recursive(p: Path, visited: set[Path]) -> list[tuple[str, str, list]]:
+    if p in visited or not p.exists():
+        return []
+    visited.add(p)
+    d = json.loads(p.read_text("utf-8"))
+    out = []
+    ogs = (d.get("units") or {}).get("objectGroups") or []
+    for g in as_list(ogs):
+        if not isinstance(g, dict):
+            continue
+        uc = str(g.get("unit_class", ""))
+        nm = str(g.get("name", ""))
+        tm = g.get("tm")
+        if ("helipad" in uc.lower() or "helipad" in nm.lower()) and isinstance(tm, list) and len(tm) == 4:
+            out.append((nm, uc, tm))
+    for ir in as_list((d.get("imports") or {}).get("import_record")):
+        if isinstance(ir, dict) and isinstance(ir.get("file"), str):
+            f_rel = ir["file"].lstrip("/").replace("\\", "/")
+            sp = DM_MIS / (f_rel + ("" if f_rel.endswith("x") else "x"))
+            if sp.exists():
+                out.extend(collect_helipads_recursive(sp, visited))
+    return out
+
+
+def default_pad_extents(uc: str) -> tuple[float, float]:
+    u = uc.lower()
+    if "beton_b" in u:
+        return (260.0, 136.0)
+    if "mud_b" in u:
+        return (166.0, 142.0)
+    if "arctic" in u:
+        return (158.0, 136.0)
+    return (140.0, 138.0)
+
+
+def extract_map_helipads(
+    lv: str,
+    mjson: dict,
+    cta_dirs: dict[str, Path],
+    prefab_meta: dict | None = None,
+    true_y_for_map: dict | None = None,
+) -> list[dict]:
+    base = lv.removeprefix("avg_")
+    mis_names = [ms["name"] for ms in mjson.get("missions", [])]
+    cands = [cta_dirs.get(base), cta_dirs.get(lv)] + [
+        d for k, d in cta_dirs.items() if base in k or any(mn.startswith(k) for mn in mis_names)
+    ]
+    found: dict[str, tuple[str, list]] = {}
+    for cd in dict.fromkeys(x for x in cands if x):
+        for bf in sorted(cd.rglob("*.blkx")):
+            if bf.stem in mis_names or "heli_spawn" in bf.stem.lower() or "air_spawn" in bf.stem.lower():
+                for nm, uc, tm in collect_helipads_recursive(bf, set()):
+                    if nm not in found:
+                        found[nm] = (uc, tm)
+
+    # Compute tank battlefield center to orient takeoff direction toward the battle area
+    bounds = mjson.get("bounds") or [
+        mjson["ox"],
+        mjson["oz"],
+        mjson["ox"] + mjson["width"] * mjson["cell"],
+        mjson["oz"] + mjson["height"] * mjson["cell"],
+    ]
+    cx = 0.5 * (bounds[0] + bounds[2])
+    cz = 0.5 * (bounds[1] + bounds[3])
+
+    order_spec = [
+        ("t1_helipad", "t1_near", "1队近距停机坪 (H1)", "1队近H1", 1, False),
+        ("t1_helipad_farspawn", "t1_far", "1队远距停机坪 (H2)", "1队远H2", 1, True),
+        ("t2_helipad", "t2_near", "2队近距停机坪 (H1)", "2队近H1", 2, False),
+        ("t2_helipad_farspawn", "t2_far", "2队远距停机坪 (H2)", "2队远H2", 2, True),
+    ]
+    pads = []
+    for raw_nm, pid, label, short, team, is_far in order_spec:
+        if raw_nm not in found:
+            continue
+        uc_raw, tm = found[raw_nm]
+        uc_low = uc_raw.lower()
+        px, py, pz = float(tm[3][0]), float(tm[3][1]), float(tm[3][2])
+        if true_y_for_map and pid in true_y_for_map:
+            py = float(true_y_for_map[pid])
+        ux_raw, uz_raw = float(tm[0][0]), float(tm[0][2])
+        ulen = math.hypot(ux_raw, uz_raw) or 1.0
+        ux, uz = ux_raw / ulen, uz_raw / ulen
+        vx, vz = -ux, -uz
+        if vx * (cx - px) + vz * (cz - pz) < 0:
+            vx, vz = -vx, -vz
+        yaw_deg = (math.degrees(math.atan2(vx, vz)) + 360.0) % 360.0
+        if prefab_meta and uc_low in prefab_meta:
+            hx = float(prefab_meta[uc_low]["hx"])
+            hz = float(prefab_meta[uc_low]["hz"])
+        else:
+            hx, hz = default_pad_extents(uc_low)
+        pads.append({
+            "id": pid,
+            "raw": raw_nm,
+            "uc": uc_low,
+            "name": label,
+            "short": short,
+            "team": team,
+            "far": is_far,
+            "x": round(px, 2),
+            "y": round(py, 2),
+            "z": round(pz, 2),
+            "yaw": round(yaw_deg, 1),
+            "ux": round(ux, 5),
+            "uz": round(uz, 5),
+            "hx": round(hx, 1),
+            "hz": round(hz, 1),
+        })
+    return pads
 
 
 def main():
@@ -624,11 +974,22 @@ def main():
             m["en"] = en
             map_titles_cn[lv] = cn
 
-        # 2. Extract ALL Ground Vehicles & Ammunition from GitHub War-Thunder-Datamine
-        index["tanks"] = extract_all_tanks_from_datamine(units, weap)
+        # 2. Extract ALL Ground Vehicles + Armed Helicopters & Ammunition from War-Thunder-Datamine
+        ground_vehicles = extract_all_tanks_from_datamine(units, weap)
+        helicopters = extract_all_helicopters_from_datamine(units, weap)
+        index["tanks"] = ground_vehicles + helicopters
 
-        # 3. Translate Missions inside every maps/<level>.js
+        # 3. Translate Missions & Extract Helipad Coordinates inside every maps/<level>.js
+        cta_root = DM_MIS / "gamedata" / "missions" / "cta" / "tanks"
+        cta_dirs = {d.name.lower(): d for d in cta_root.iterdir() if d.is_dir()} if cta_root.exists() else {}
+        air_idx_path = ROOT / "i18n_src" / "airspace_raw" / "air_meta_index.json"
+        air_meta_map = json.loads(air_idx_path.read_text(encoding="utf-8")) if air_idx_path.exists() else {}
+        true_y_path = ROOT / "i18n_src" / "airspace_raw" / "helipad_true_y.json"
+        true_y_all = json.loads(true_y_path.read_text(encoding="utf-8")) if true_y_path.exists() else {}
+        prefab_path = ROOT / "i18n_src" / "airspace_raw" / "helipad_prefabs" / "prefabs.json"
+        prefab_meta = json.loads(prefab_path.read_text(encoding="utf-8")) if prefab_path.exists() else {}
         updated_entries: dict[str, bytes] = {}
+        maps_with_pads = 0
         for m in index["maps"]:
             lv = m["name"]
             rel = f"maps/{lv}.js"
@@ -636,6 +997,13 @@ def main():
             mjson = json.loads(mraw[len("WTV_MAP("):].rstrip(";").rstrip()[:-1])
             for mis in mjson.get("missions", []):
                 mis["title"] = translate_mission(mis["name"], map_titles_cn[lv], versus)
+            pads = extract_map_helipads(lv, mjson, cta_dirs, prefab_meta, true_y_all.get(lv))
+            mjson["helipads"] = pads
+            if lv in air_meta_map:
+                mjson["air"] = air_meta_map[lv]
+            m["helipads"] = len(pads)
+            if pads:
+                maps_with_pads += 1
             new_mtxt = "WTV_MAP(" + json.dumps(mjson, ensure_ascii=False, separators=(",", ":")) + ");\n"
             updated_entries[rel] = new_mtxt.encode("utf-8")
 
@@ -652,15 +1020,19 @@ def main():
     total_guns = sum(len(t["guns"]) for t in index["tanks"])
     total_shells = sum(len(s) for t in index["tanks"] for g in t["guns"] for s in [g["shells"]])
     rocket_shells = sum(1 for t in index["tanks"] for g in t["guns"] for s in g["shells"] if "rocket" in s)
-    print(f"Imported {len(index['tanks'])} ground vehicles, {total_guns} weapons, {total_shells} shells/rockets/missiles ({rocket_shells} with rocket/missile parameters)!")
+    print(f"Imported {len(ground_vehicles)} ground vehicles + {len(helicopters)} helicopters = {len(index['tanks'])} total vehicles!")
+    print(f"Total weapons: {total_guns}, shells/rockets/missiles: {total_shells} ({rocket_shells} rocket/missile), helipads on {maps_with_pads}/{len(index['maps'])} maps!")
 
-    # Verify key vehicles requested by user
+    # Verify key vehicles & helicopters
     by_id = {t["id"].lower(): t for t in index["tanks"]}
-    for check_id in ["ussr_bm_31_12", "ussr_bm_13n", "ussr_bm_8_24", "germ_sturmmorser_sturmtiger", "jp_type_75_mlrs", "us_m4_sherman_calliope", "ussr_rbt_5", "uk_churchill_avre", "cn_hj_9", "cn_plz_05"]:
+    for check_id in [
+        "ussr_bm_31_12", "ussr_bm_13n", "germ_sturmmorser_sturmtiger",
+        "heli_ka_52", "heli_mi_24v", "heli_z_10", "heli_z_19", "heli_ah_64d", "heli_ah_1g", "heli_uh_1b",
+    ]:
         t = by_id.get(check_id)
         if t:
-            gsum = [(g["title"], g["pitch"], [(s["name"], s["typeTitle"], s["v0"], s.get("rocket")) for s in g["shells"]]) for g in t["guns"]]
-            print(f"  CHECK {check_id}: {t['name']} -> {gsum}")
+            gsum = [(g["title"], g["pitch"], [(s["name"], s["typeTitle"], s["v0"], s.get("rocket")) for s in g["shells"][:3]]) for g in t["guns"][:2]]
+            print(f"  CHECK {check_id}: {t['name']} (ccip={t.get('ccip')}) -> {gsum}")
         else:
             print(f"  [MISSING!] {check_id}")
 

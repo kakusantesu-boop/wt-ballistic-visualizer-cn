@@ -88,7 +88,7 @@ def unpack_pack(pack_path: Path, out_dir: Path, only_prefix: list[str] | None = 
     if only_prefix:
         entries = [
             e for e in entries
-            if e[0] == "index.js" or e[0].startswith("tanks/") or any(e[0].startswith(p) for p in only_prefix)
+            if e[0] in ("index.js", "helipads.js") or e[0].startswith("tanks/") or any(e[0].startswith(p) for p in only_prefix)
         ]
     out_dir.mkdir(parents=True, exist_ok=True)
     total_bytes = 0

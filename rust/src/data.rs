@@ -59,12 +59,21 @@ pub struct Gun {
 #[derive(Deserialize, Clone)]
 pub struct Tank {
     pub id: String,
+    #[serde(default)]
+    pub kind: Option<String>,
+    #[serde(default)]
+    pub ccip: bool,
     pub name: String,
     #[serde(default)]
     pub en: Option<String>,
     #[serde(default)]
     pub model: Option<String>,
     pub guns: Vec<Gun>,
+}
+impl Tank {
+    pub fn is_heli(&self) -> bool {
+        self.kind.as_deref() == Some("heli")
+    }
 }
 #[derive(Deserialize, Clone)]
 pub struct MapEntry {
@@ -116,6 +125,118 @@ pub struct Mission {
     pub areas: Vec<Area>,
 }
 #[derive(Deserialize, Clone, Debug)]
+#[allow(dead_code)]
+pub struct Helipad {
+    pub id: String,
+    pub name: String,
+    pub short: String,
+    pub team: i64,
+    #[serde(default)]
+    pub far: bool,
+    #[serde(default)]
+    pub uc: String,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    #[serde(default)]
+    pub yaw: f64,
+    #[serde(default)]
+    pub ux: f64,
+    #[serde(default)]
+    pub uz: f64,
+    #[serde(default)]
+    pub hx: f64,
+    #[serde(default)]
+    pub hz: f64,
+}
+impl Helipad {
+    /// Unit horizontal X-axis `(ux, uz)` of the helipad's Dagor transform (`tm[0]`), where `tm[2] = (-uz, 0, ux)`.
+    pub fn basis(&self) -> (f64, f64) {
+        let l = self.ux.hypot(self.uz);
+        if l > 1e-4 {
+            (self.ux / l, self.uz / l)
+        } else {
+            let yr = self.yaw * crate::core::DEG;
+            (-yr.sin(), -yr.cos())
+        }
+    }
+    pub fn extents(&self) -> (f64, f64) {
+        let hx = if self.hx > 10.0 { self.hx } else if self.uc.contains("beton_b") { 262.0 } else { 139.0 };
+        let hz = if self.hz > 10.0 { self.hz } else { 136.0 };
+        (hx, hz)
+    }
+    pub fn local_xz(&self, x: f64, z: f64) -> (f64, f64) {
+        let (ux, uz) = self.basis();
+        let (dx, dz) = (x - self.x, z - self.z);
+        (dx * ux + dz * uz, -dx * uz + dz * ux)
+    }
+    /// Exact 3D surface height of the graded helipad deck + 32m sloped embankment skirt if `(x, z)` lies within it.
+    pub fn surface_y(&self, x: f64, z: f64) -> Option<f64> {
+        let (hx, hz) = self.extents();
+        if (x - self.x).abs() > hx + hz + 40.0 || (z - self.z).abs() > hx + hz + 40.0 {
+            return None;
+        }
+        let (lx, lz) = self.local_xz(x, z);
+        let d_rect = (lx.abs() - hx).max(0.0).hypot((lz.abs() - hz).max(0.0));
+        if d_rect <= 0.0 {
+            Some(self.y)
+        } else if d_rect < 32.0 {
+            Some(self.y - (d_rect / 32.0) * 24.0)
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[allow(dead_code)]
+pub struct HelipadPrefab {
+    pub hx: f32,
+    pub hz: f32,
+    #[serde(default)]
+    pub rwy: f32,
+    #[serde(default)]
+    pub spawns: Vec<[f32; 2]>,
+    #[serde(default)]
+    pub inst: Vec<[f32; 13]>,
+}
+
+pub struct HelipadLib {
+    pub models: Vec<Model>,
+    pub prefabs: std::collections::HashMap<String, HelipadPrefab>,
+}
+
+#[derive(Deserialize)]
+struct HelipadJsRaw {
+    models: String,
+    prefabs: std::collections::HashMap<String, HelipadPrefab>,
+}
+
+pub fn load_helipads(store: &Store) -> Result<HelipadLib> {
+    let mut a = call_args(store, "helipads.js", "WTV_PADS")?;
+    ensure!(!a.is_empty(), "empty helipads.js");
+    let raw: HelipadJsRaw = serde_json::from_value(a.remove(0))?;
+    let parsed = parse_objects(&payload(store, &raw.models)?)?;
+    Ok(HelipadLib { models: parsed.models, prefabs: raw.prefabs })
+}
+#[derive(Deserialize, Clone, Debug)]
+pub struct AirMeta {
+    pub width: usize,
+    pub height: usize,
+    pub cell: f64,
+    pub ox: f64,
+    pub oz: f64,
+    pub hmin: f64,
+    pub hmax: f64,
+    pub h: String,
+    pub tex: String,
+}
+impl AirMeta {
+    pub fn terrain_meta(&self) -> TerrainMeta {
+        TerrainMeta { width: self.width, height: self.height, cell: self.cell, ox: self.ox, oz: self.oz, hmin: self.hmin, hmax: self.hmax }
+    }
+}
+#[derive(Deserialize, Clone, Debug)]
 pub struct MapMeta {
     pub name: String,
     #[serde(default)]
@@ -130,11 +251,47 @@ pub struct MapMeta {
     pub missions: Vec<Mission>,
     #[serde(default)]
     pub water: Option<f64>,
+    #[serde(default)]
+    pub helipads: Vec<Helipad>,
+    #[serde(default)]
+    pub air: Option<AirMeta>,
 }
 impl MapMeta {
     pub fn terrain_meta(&self) -> TerrainMeta {
         TerrainMeta { width: self.width, height: self.height, cell: self.cell, ox: self.ox, oz: self.oz, hmin: self.hmin, hmax: self.hmax }
     }
+}
+
+pub fn outer_ground_at(pads: &[Helipad], t: &Terrain, x: f64, z: f64) -> f64 {
+    if t.inside(x, z) {
+        return t.height_at(x, z);
+    }
+    let edge_h = t.height_at(x, z);
+    let Some(near_pad) = pads.iter().min_by(|a, b| (x - a.x).hypot(z - a.z).total_cmp(&(x - b.x).hypot(z - b.z))) else {
+        return edge_h;
+    };
+    let best_d = (x - near_pad.x).hypot(z - near_pad.z);
+    if best_d <= 120.0 {
+        return near_pad.y;
+    }
+    let dx_edge = if x < t.ox { t.ox - x } else if x > t.x1 { x - t.x1 } else { 0.0 };
+    let dz_edge = if z < t.oz { t.oz - z } else if z > t.z1 { z - t.z1 } else { 0.0 };
+    let d_edge = dx_edge.hypot(dz_edge);
+    let w_pad = 1.0 / (best_d - 120.0).max(1.0);
+    let w_edge = 1.0 / d_edge.max(1.0);
+    (near_pad.y * w_pad + edge_h * w_edge) / (w_pad + w_edge)
+}
+
+pub fn load_air(store: &Store, air: &AirMeta) -> Result<(Terrain, image::RgbaImage)> {
+    let mut raw = payload(store, &air.h)?;
+    if air.h.ends_with(crate::store::PREDICTED) {
+        crate::store::unpredict(&mut raw, air.width);
+    }
+    ensure!(raw.len() == air.width * air.height * 2, "airspace heightmap size mismatch");
+    let h16: Vec<u16> = raw.chunks_exact(2).map(|c| u16::from_le_bytes([c[0], c[1]])).collect();
+    let t_air = Terrain::new(&air.terrain_meta(), &h16, &[]);
+    let color = image_of(store, &air.tex)?;
+    Ok((t_air, color))
 }
 
 pub fn load_map(store: &Store, name: &str) -> Result<(MapMeta, Vec<u16>)> {
@@ -342,6 +499,7 @@ pub struct LoadedMap {
     pub t: Terrain,
     pub tr: Terrain,
     pub tv: Terrain,
+    pub t_air: Option<std::sync::Arc<Terrain>>,
     pub obj: Option<std::sync::Arc<Objects>>,
     pub ground: Option<std::sync::Arc<Ground>>,
 }
@@ -349,11 +507,47 @@ pub struct LoadedMap {
 impl LoadedMap {
     pub fn new(meta: MapMeta, h16: Vec<u16>) -> Self {
         let t = Terrain::new(&meta.terrain_meta(), &h16, &[]);
-        Self { tr: t.clone(), tv: t.clone(), t, meta, h16, obj: None, ground: None }
+        Self { tr: t.clone(), tv: t.clone(), t, meta, h16, t_air: None, obj: None, ground: None }
     }
-    /// Where a tank at (x, z) stands: the ground, or the top of a rock or other solid object there.
+    fn with_pads(&self, x: f64, z: f64, base_y: f64) -> f64 {
+        let mut h = base_y;
+        for pd in &self.meta.helipads {
+            if let Some(py) = pd.surface_y(x, z) {
+                h = h.max(py);
+            }
+        }
+        h
+    }
+    /// Where a tank/heli at (x, z) stands: ground + roofs inside HM2, exact helipad deck/skirt, or LandMesh outer terrain.
     pub fn stand(&self, x: f64, z: f64) -> f64 {
-        self.tr.height_at(x, z)
+        let base = if self.tr.inside(x, z) {
+            self.tr.height_at(x, z)
+        } else if let Some(ta) = &self.t_air {
+            ta.height_at(x, z)
+        } else {
+            outer_ground_at(&self.meta.helipads, &self.t, x, z)
+        };
+        self.with_pads(x, z, base)
+    }
+    pub fn outer_ground(&self, x: f64, z: f64) -> f64 {
+        let base = if self.t.inside(x, z) {
+            self.t.height_at(x, z)
+        } else if let Some(ta) = &self.t_air {
+            ta.height_at(x, z)
+        } else {
+            outer_ground_at(&self.meta.helipads, &self.t, x, z)
+        };
+        self.with_pads(x, z, base)
+    }
+    pub fn surf_at(&self, tc: &Terrain, x: f64, z: f64) -> f64 {
+        let base = if tc.inside(x, z) {
+            tc.height_at(x, z)
+        } else if let Some(ta) = &self.t_air {
+            ta.height_at(x, z)
+        } else {
+            outer_ground_at(&self.meta.helipads, &self.t, x, z)
+        };
+        self.with_pads(x, z, base)
     }
     pub fn set_objects(&mut self, o: Objects) -> Result<()> {
         ensure!(o.roof.q.len() == self.meta.width * self.meta.height, "object grid does not match the heightmap");
@@ -402,5 +596,85 @@ mod tests {
                 assert!((p2 - p3).abs() < 0.01, "{p2} vs {p3}");
             }
         }
+    }
+
+    #[test]
+    fn packed_exe_airspace_and_heli_latency() {
+        let exe = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../dist/婴儿弹道计算机/婴儿弹道计算机.exe");
+        let Ok(Some(store)) = Store::open_pack(&exe) else { return };
+        let idx = load_index(&store).unwrap();
+        assert_eq!(idx.maps.len(), 56);
+        assert!(idx.tanks.len() >= 1400);
+        let heli = idx.tanks.iter().find(|t| t.id == "heli_ka_52").unwrap();
+        let sh_cannon = &heli.guns[0].shells[0];
+        let sh_rocket = heli.guns.iter().flat_map(|g| &g.shells).find(|s| s.rocket.is_some()).unwrap();
+
+        for lv in ["avg_abandoned_factory", "avg_normandy"] {
+            let (meta, h16) = load_map(&store, lv).unwrap();
+            let air_meta = meta.air.clone().expect("air metadata present in packed exe");
+            let (t_air, air_col) = load_air(&store, &air_meta).unwrap();
+            assert_eq!((t_air.w, t_air.hh), (1024, 1024));
+            assert_eq!((air_col.width(), air_col.height()), (1024, 1024));
+            let composed = crate::raster::compose_air(&t_air, Some(&air_col));
+            assert_eq!((composed.width(), composed.height()), (1024, 1024));
+
+            let mut map = LoadedMap::new(meta, h16);
+            map.t_air = Some(std::sync::Arc::new(t_air));
+            let areas = crate::scene::mission_areas(&map.meta.missions[0], crate::scene::GameMode::Realistic);
+            let pad = &map.meta.helipads[0];
+            let a = crate::core::Pt { x: pad.x, z: pad.z };
+            let b = crate::core::Pt { x: 0.5 * (map.t.ox + map.t.x1), z: 0.5 * (map.t.oz + map.t.z1) };
+            let p = crate::scene::Params { p_min: -35.0, p_max: 45.0, range: 8000.0, gun_h: 45.0, tgt_h: 1.5, v_air: 120.0 / 3.6 };
+
+            for (label, sh) in [("S-8KO rocket", sh_rocket), ("2A42 cannon", sh_cannon)] {
+                let t0 = std::time::Instant::now();
+                let mut lines_n = 0;
+                for _ in 0..10 {
+                    let aim = crate::scene::compute_aim(&map, &map.tr, &map.tr, sh, a, b, &p);
+                    let (lines, max_s) = crate::scene::heli_aim_lines(&map, &map.tr, &areas, sh, a, Some(&aim), &p);
+                    lines_n = lines.len();
+                    if sh.rocket.is_some() {
+                        assert!(max_s.is_some());
+                    }
+                }
+                let avg_ms = t0.elapsed().as_secs_f64() * 1000.0 / 10.0;
+                println!("[PASS] {lv} ({label}): outer {:.1} km loaded, full Rust heli_aim_lines + compute_aim = {avg_ms:.2} ms ({lines_n} lines)", map.t_air.as_ref().unwrap().w as f64 * map.t_air.as_ref().unwrap().cell / 1000.0);
+                assert!(avg_ms < 25.0, "{label} heli_aim_lines took {avg_ms:.2} ms");
+            }
+        }
+
+        // Verify helipad 3D prefab library + all 224 helipads across all 56 maps have exact ground-snapped elevation & zero cone mounds
+        let pad_lib = load_helipads(&store).expect("helipads.js present and valid in packed exe");
+        assert!(pad_lib.models.len() >= 50 && pad_lib.prefabs.len() >= 6);
+        let mut total_pads = 0usize;
+        for me in &idx.maps {
+            let (meta, h16) = load_map(&store, &me.name).unwrap();
+            let (t_air, _) = load_air(&store, meta.air.as_ref().unwrap()).unwrap();
+            let mut map = LoadedMap::new(meta, h16);
+            map.t_air = Some(std::sync::Arc::new(t_air));
+            for pd in &map.meta.helipads {
+                total_pads += 1;
+                let pf = pad_lib.prefabs.get(&pd.uc).unwrap_or_else(|| panic!("missing prefab {} on {}", pd.uc, me.name));
+                assert_eq!(pf.spawns.len(), 16);
+                let stand_c = map.stand(pd.x, pd.z);
+                assert!((stand_c - pd.y).abs() < 1e-4, "{} {}: stand={stand_c} vs pad.y={}", me.name, pd.id, pd.y);
+                let (ux, uz) = pd.basis();
+                for &[sx, sz] in &pf.spawns {
+                    let wx = pd.x + sx as f64 * ux - sz as f64 * uz;
+                    let wz = pd.z + sx as f64 * uz + sz as f64 * ux;
+                    assert!((map.stand(wx, wz) - pd.y).abs() < 1e-4, "{} {} spawn ({sx},{sz}) not level", me.name, pd.id);
+                }
+                if !map.t.inside(pd.x, pd.z) {
+                    let ta_h = map.t_air.as_ref().unwrap().height_at(pd.x, pd.z);
+                    assert!((pd.y - ta_h).abs() < 1.2, "{} {}: pad.y={} vs t_air={ta_h}", me.name, pd.id, pd.y);
+                }
+            }
+            if me.name == "avg_aral_sea" {
+                let p1 = map.meta.helipads.iter().find(|p| p.id == "t1_near").unwrap();
+                let p4 = map.meta.helipads.iter().find(|p| p.id == "t2_far").unwrap();
+                assert!((p1.y - 71.04).abs() < 2.0 && (p4.y - 10.81).abs() < 2.0, "Aral Sea elevations: {}, {}", p1.y, p4.y);
+            }
+        }
+        assert_eq!(total_pads, 224);
     }
 }

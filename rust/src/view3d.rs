@@ -63,27 +63,31 @@ impl View3D {
     pub fn dirty(&mut self) {
         self.dirty = true;
     }
-    pub fn fit(&mut self, t: &Terrain, cx: f64, cz: f64, span: f64) {
-        self.cam = Cam { tx: cx, tz: cz, ty: t.height_at(cx, cz), dist: span * 1.1, yaw: 0.0, pitch: 0.9, aim_fov: self.cam.aim_fov, zoom: self.cam.zoom };
+    pub fn fit(&mut self, map: &crate::data::LoadedMap, cx: f64, cz: f64, span: f64) {
+        self.cam = Cam { tx: cx, tz: cz, ty: map.outer_ground(cx, cz), dist: span * 1.1, yaw: 0.0, pitch: 0.9, aim_fov: self.cam.aim_fov, zoom: self.cam.zoom };
         self.dirty = true;
     }
-    pub fn center_on(&mut self, t: &Terrain, p: Pt) {
+    pub fn center_on(&mut self, map: &crate::data::LoadedMap, p: Pt) {
         self.cam.tx = p.x;
         self.cam.tz = p.z;
-        self.cam.ty = t.height_at(p.x, p.z);
+        self.cam.ty = map.outer_ground(p.x, p.z);
         self.dirty = true;
     }
-    pub fn drag(&mut self, t: &Terrain, dx: f32, dy: f32, pan: bool, h: f32) {
+    pub fn drag(&mut self, map: &crate::data::LoadedMap, dx: f32, dy: f32, pan: bool, h: f32, heli: bool) {
         let (dx, dy) = (dx as f64, dy as f64);
+        let t = &map.t;
         if !pan {
             self.cam.yaw += dx * 0.005;
             self.cam.pitch = (self.cam.pitch + dy * 0.005).clamp(0.03, 1.55);
         } else {
             let k = 2.0 * self.cam.dist * (ORBIT_FOV.to_radians() / 2.0).tan() / h.max(1.0) as f64;
             let (s, c) = self.cam.yaw.sin_cos();
-            self.cam.tx = (self.cam.tx - c * dx * k + s * dy * k).clamp(t.ox, t.x1);
-            self.cam.tz = (self.cam.tz + s * dx * k + c * dy * k).clamp(t.oz, t.z1);
-            self.cam.ty = t.height_at(self.cam.tx, self.cam.tz);
+            let (ax0, az0, ax1, az1) = map.t_air.as_ref().map_or((t.ox, t.oz, t.x1, t.z1), |ta| (ta.ox, ta.oz, ta.x1, ta.z1));
+            let (min_x, max_x) = if heli { (ax0.min(-25000.0), ax1.max(25000.0)) } else { (ax0, ax1) };
+            let (min_z, max_z) = if heli { (az0.min(-25000.0), az1.max(25000.0)) } else { (az0, az1) };
+            self.cam.tx = (self.cam.tx - c * dx * k + s * dy * k).clamp(min_x, max_x);
+            self.cam.tz = (self.cam.tz + s * dx * k + c * dy * k).clamp(min_z, max_z);
+            self.cam.ty = map.outer_ground(self.cam.tx, self.cam.tz);
         }
         self.dirty = true;
     }
@@ -94,7 +98,7 @@ impl View3D {
         } else if aim {
             self.cam.aim_fov = (self.cam.aim_fov * f).clamp(0.5, 80.0);
         } else {
-            self.cam.dist = (self.cam.dist * f).clamp(5.0, 40000.0);
+            self.cam.dist = (self.cam.dist * f).clamp(5.0, 75000.0);
         }
         self.dirty = true;
     }
@@ -106,7 +110,8 @@ impl View3D {
     }
 
     /// March the view ray through a screen point against the surface (roofs are hit too, crowns are not).
-    pub fn pick(&self, t: &Terrain, px_: f32, py: f32) -> Option<Pt> {
+    pub fn pick(&self, map: &crate::data::LoadedMap, px_: f32, py: f32, heli: bool) -> Option<Pt> {
+        let t = &map.tr;
         let nx = px_ as f64 / self.wh.0 as f64 * 2.0 - 1.0;
         let ny = 1.0 - py as f64 / self.wh.1 as f64 * 2.0;
         let un = |z: f64| { let v = xform(&self.inv, nx, ny, z); [v[0] / v[3], v[1] / v[3], v[2] / v[3]] };
@@ -116,7 +121,12 @@ impl View3D {
             return None;
         }
         let dir = [(b[0] - a[0]) / len, (b[1] - a[1]) / len, (b[2] - a[2]) / len];
-        let (lo, hi) = ([t.ox, t.lo - 1.0, t.oz], [t.x1, t.hi + 1.0, t.z1]);
+        let (ax0, az0, ax1, az1, alo, ahi) = match &map.t_air {
+            Some(ta) => (ta.ox, ta.oz, ta.x1, ta.z1, t.lo.min(ta.lo), t.hi.max(ta.hi)),
+            None => (t.ox, t.oz, t.x1, t.z1, t.lo, t.hi),
+        };
+        let lo = if heli { [ax0.min(-25000.0), (alo - 80.0).min(-80.0), az0.min(-25000.0)] } else { [t.ox, t.lo - 1.0, t.oz] };
+        let hi = if heli { [ax1.max(25000.0), ahi + 80.0, az1.max(25000.0)] } else { [t.x1, t.hi + 1.0, t.z1] };
         let (mut t0, mut t1) = (0.0f64, len);
         for i in 0..3 {
             if dir[i].abs() < 1e-12 {
@@ -135,8 +145,8 @@ impl View3D {
         if t0 > t1 {
             return None;
         }
-        let above = |s: f64| a[1] + dir[1] * s - t.height_at(a[0] + dir[0] * s, a[2] + dir[2] * s);
-        let step = t.cell / 2.0;
+        let above = |s: f64| a[1] + dir[1] * s - map.stand(a[0] + dir[0] * s, a[2] + dir[2] * s);
+        let step = (t.cell / 2.0).max((t1 - t0) / 1400.0);
         let (mut prev, mut s) = (t0, t0);
         while s <= t1 + step {
             let tc = s.min(t1);
@@ -155,7 +165,7 @@ impl View3D {
     }
 
     fn camera(&mut self, v: &Viewer, w: f32, h: f32) {
-        let t = &v.map.as_ref().expect("map").t;
+        let map = v.map.as_ref().expect("map");
         let (e, tgt, fov, near);
         if let (true, Some(aim), Some(a), Some(b)) = (v.aim_ready(), v.aim.as_ref(), v.a, v.b) {
             e = [a.x, aim.y_a, a.z];
@@ -169,9 +179,9 @@ impl View3D {
             tgt = [c.tx, c.ty, c.tz];
             e = [tgt[0] - f[0] * c.dist, tgt[1] - f[1] * c.dist, tgt[2] - f[2] * c.dist];
             fov = ORBIT_FOV;
-            near = ((e[1] - t.height_at(e[0], e[2])) * 0.3).min(c.dist * 0.05).clamp(0.5, 100.0);
+            near = ((e[1] - map.outer_ground(e[0], e[2])) * 0.3).min(c.dist * 0.05).clamp(0.5, 100.0);
         }
-        let mut proj = perspective(fov.to_radians(), w as f64 / h as f64, near, 80000.0);
+        let mut proj = perspective(fov.to_radians(), w as f64 / h as f64, near, 120000.0);
         proj[0] = -proj[0]; // Dagor is left-handed: mirror X so +X stays screen-right as in the 2D map
         self.vp = mul(&proj, &look_at(e, tgt));
         self.inv = invert(&self.vp);
@@ -180,12 +190,13 @@ impl View3D {
     }
 
     /// A segment of the arc is hidden when terrain or roofs are between it and the eye.
-    fn hidden_from(&self, tr: &Terrain, p: [f64; 3]) -> bool {
+    fn hidden_from(&self, map: &crate::data::LoadedMap, tr: &Terrain, p: [f64; 3]) -> bool {
         let e = self.eye;
         (1..40).any(|k| {
             let f = k as f64 / 40.0 * 0.985;
             let (x, y, z) = (e[0] + (p[0] - e[0]) * f, e[1] + (p[1] - e[1]) * f, e[2] + (p[2] - e[2]) * f);
-            tr.inside(x, z) && tr.height_at(x, z) > y + 0.3
+            let in_any = tr.inside(x, z) || map.t_air.as_ref().is_some_and(|ta| ta.inside(x, z));
+            in_any && map.surf_at(tr, x, z) > y + 0.3
         })
     }
 }
@@ -262,6 +273,7 @@ struct Uniforms {
     zn: [f32; 4],
     ov: [f32; 4],
     flags: [f32; 4],
+    clip_inner: [f32; 4],
     tiles: [f32; 32],
 }
 
@@ -309,11 +321,15 @@ struct SceneRes {
     map_key: usize,
     h: wgpu::Texture,
     c: (usize, wgpu::Texture),
+    air_h: (usize, wgpu::Texture),
+    air_c: (usize, wgpu::Texture),
     z: (usize, wgpu::Texture),
     o: (usize, wgpu::Texture),
     det: (usize, wgpu::Texture, wgpu::Texture, [f32; 32]),
     obj: (usize, Vec<Batch>, Vec<TreeBatch>),
+    pads: Vec<(usize, wgpu::Buffer, u32)>,
     bind: Option<wgpu::BindGroup>,
+    bind_air: Option<wgpu::BindGroup>,
 }
 
 struct Gpu {
@@ -322,16 +338,20 @@ struct Gpu {
     bgl: wgpu::BindGroupLayout,
     pipes: Pipes,
     ubuf: wgpu::Buffer,
+    ubuf_air: wgpu::Buffer,
     grid: (wgpu::Buffer, wgpu::Buffer, u32),
     nodes: (wgpu::Buffer, u64),
+    nodes_air: (wgpu::Buffer, u64),
     lines: (wgpu::Buffer, u64),
     curtain: (wgpu::Buffer, u64),
     trees: Vec<(wgpu::Buffer, u32)>,
+    pad_meshes: Vec<Mesh>,
     tanks: HashMap<String, Mesh>,
     tank_inst: wgpu::Buffer,
     s_lin: wgpu::Sampler,
     s_near: wgpu::Sampler,
     blank: wgpu::Texture,
+    blank_h: wgpu::Texture,
     blank_arr: wgpu::Texture,
     scene: Option<SceneRes>,
     target: Option<Target>,
@@ -433,10 +453,12 @@ impl Gpu {
         });
         let s_near = device.create_sampler(&wgpu::SamplerDescriptor { address_mode_u: wgpu::AddressMode::ClampToEdge, address_mode_v: wgpu::AddressMode::ClampToEdge, ..Default::default() });
         let ubuf = device.create_buffer(&wgpu::BufferDescriptor { label: None, size: std::mem::size_of::<Uniforms>() as u64, usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST, mapped_at_creation: false });
+        let ubuf_air = device.create_buffer(&wgpu::BufferDescriptor { label: None, size: std::mem::size_of::<Uniforms>() as u64, usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST, mapped_at_creation: false });
         let blank = texture(&device, &queue, 1, 1, 1, wgpu::TextureFormat::Rgba8Unorm, &[vec![0u8; 4]], 4);
+        let blank_h = texture(&device, &queue, 1, 1, 1, wgpu::TextureFormat::R32Float, &[vec![0u8; 4]], 4);
         let blank_arr = texture_array(&device, &queue, 1, &[vec![vec![128u8; 4]]]);
         let tank_inst = device.create_buffer(&wgpu::BufferDescriptor { label: None, size: 128, usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST, mapped_at_creation: false });
-        Ok(Self { nodes: (dynbuf(12 * 4096), 12 * 4096), lines: (dynbuf(28 * 4096), 28 * 4096), curtain: (dynbuf(28 * 4096), 28 * 4096), device, queue, bgl, pipes, ubuf, grid, trees, tanks: HashMap::new(), tank_inst, s_lin, s_near, blank, blank_arr, scene: None, target: None })
+        Ok(Self { nodes: (dynbuf(12 * 4096), 12 * 4096), nodes_air: (dynbuf(12 * 4096), 12 * 4096), lines: (dynbuf(28 * 4096), 28 * 4096), curtain: (dynbuf(28 * 4096), 28 * 4096), device, queue, bgl, pipes, ubuf, ubuf_air, grid, trees, pad_meshes: vec![], tanks: HashMap::new(), tank_inst, s_lin, s_near, blank, blank_h, blank_arr, scene: None, target: None })
     }
 
     /// A vertex buffer of at least `size` bytes (grown, never shrunk) filled with `data`.
@@ -468,30 +490,91 @@ impl Gpu {
     fn sync(&mut self, v: &Viewer) {
         let map = v.map.as_ref().expect("map");
         let t = &map.t;
+        if self.pad_meshes.is_empty() {
+            if let Some(lib) = &v.helipad_lib {
+                self.pad_meshes = lib.models.iter().map(|m| Gpu::mesh_on(&self.device, &m.pos, &m.nrm, &m.rgba, Some(&m.idx))).collect();
+            }
+        }
         if self.scene.as_ref().is_none_or(|s| s.map_key != map.h16.as_ptr() as usize) {
             let h = texture(&self.device, &self.queue, t.w as u32, t.hh as u32, 1, wgpu::TextureFormat::R32Float, &[bytemuck::cast_slice(&t.h).to_vec()], 4);
             let b = || self.blank.clone();
-            self.scene = Some(SceneRes { map_key: map.h16.as_ptr() as usize, h, c: (0, b()), z: (0, b()), o: (0, b()), det: (0, b(), self.blank_arr.clone(), [4.0; 32]), obj: (0, vec![], vec![]), bind: None });
+            let mut pads = vec![];
+            if let (Some(lib), false) = (&v.helipad_lib, self.pad_meshes.is_empty()) {
+                let mut per_m: Vec<Vec<f32>> = vec![vec![]; self.pad_meshes.len()];
+                for pd in &map.meta.helipads {
+                    let pf = lib.prefabs.get(&pd.uc).or_else(|| lib.prefabs.get("dynhelipad_beton_a_usa"));
+                    let Some(pf) = pf else { continue };
+                    let (ux, uz) = pd.basis();
+                    let (ux, uz) = (ux as f32, uz as f32);
+                    let (px, py, pz) = (pd.x as f32, pd.y as f32, pd.z as f32);
+                    let rot = |vx: f32, vy: f32, vz: f32| [vx * ux - vz * uz, vy, vx * uz + vz * ux];
+                    for arr in &pf.inst {
+                        let mid = arr[0] as usize;
+                        if mid >= per_m.len() {
+                            continue;
+                        }
+                        let wx = rot(arr[1], arr[2], arr[3]);
+                        let wy = rot(arr[4], arr[5], arr[6]);
+                        let wz = rot(arr[7], arr[8], arr[9]);
+                        let wt = rot(arr[10], arr[11], arr[12]);
+                        per_m[mid].extend_from_slice(&[
+                            wx[0], wx[1], wx[2],
+                            wy[0], wy[1], wy[2],
+                            wz[0], wz[1], wz[2],
+                            wt[0] + px, wt[1] + py, wt[2] + pz,
+                            1.0, 1.0, 1.0, 1.0,
+                        ]);
+                    }
+                }
+                for (mid, list) in per_m.into_iter().enumerate() {
+                    if !list.is_empty() && self.pad_meshes[mid].idx.is_some() {
+                        let ibuf = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                            label: None,
+                            contents: bytemuck::cast_slice(&list),
+                            usage: wgpu::BufferUsages::VERTEX,
+                        });
+                        pads.push((mid, ibuf, (list.len() / 16) as u32));
+                    }
+                }
+            }
+            self.scene = Some(SceneRes { map_key: map.h16.as_ptr() as usize, h, c: (0, b()), air_h: (0, self.blank_h.clone()), air_c: (0, b()), z: (0, b()), o: (0, b()), det: (0, b(), self.blank_arr.clone(), [4.0; 32]), obj: (0, vec![], vec![]), pads, bind: None, bind_air: None });
         }
         let (device, queue) = (&self.device, &self.queue);
         let s = self.scene.as_mut().unwrap();
         let mut changed = s.bind.is_none();
+        let mut air_changed = s.bind_air.is_none();
         if let Some(l) = &v.map_img {
             if s.c.0 != ptr(&l.rgba) {
                 s.c = (ptr(&l.rgba), rgba_texture(device, queue, &l.rgba, true));
                 changed = true;
             }
         }
+        let ahk = map.t_air.as_ref().map_or(1, |ta| ta.h.as_ptr() as usize);
+        if s.air_h.0 != ahk {
+            let tex = match &map.t_air {
+                Some(ta) => texture(device, queue, ta.w as u32, ta.hh as u32, 1, wgpu::TextureFormat::R32Float, &[bytemuck::cast_slice(&ta.h).to_vec()], 4),
+                None => self.blank_h.clone(),
+            };
+            s.air_h = (ahk, tex);
+            air_changed = true;
+        }
+        let ack = v.air_img.as_ref().map_or(1, |l| ptr(&l.rgba));
+        if s.air_c.0 != ack {
+            s.air_c = (ack, v.air_img.as_ref().map_or_else(|| self.blank.clone(), |l| rgba_texture(device, queue, &l.rgba, true)));
+            air_changed = true;
+        }
         if let Some((_, l, _)) = &v.zones_img {
             if s.z.0 != ptr(&l.rgba) {
                 s.z = (ptr(&l.rgba), rgba_texture(device, queue, &l.rgba, false));
                 changed = true;
+                air_changed = true;
             }
         }
         let ok = v.overlay.as_ref().map_or(1, |(_, l)| ptr(&l.rgba));
         if s.o.0 != ok {
             s.o = (ok, v.overlay.as_ref().map_or(self.blank.clone(), |(_, l)| rgba_texture(device, queue, &l.rgba, false)));
             changed = true;
+            air_changed = true;
         }
         let dk = map.ground.as_ref().map_or(1, ptr);
         if s.det.0 != dk {
@@ -553,6 +636,26 @@ impl Gpu {
                 layout: &self.bgl,
                 entries: &[
                     wgpu::BindGroupEntry { binding: 0, resource: self.ubuf.as_entire_binding() },
+                    wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&hv) },
+                    wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::TextureView(&cv) },
+                    wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::TextureView(&ov) },
+                    wgpu::BindGroupEntry { binding: 4, resource: wgpu::BindingResource::TextureView(&zv) },
+                    wgpu::BindGroupEntry { binding: 5, resource: wgpu::BindingResource::TextureView(&iv) },
+                    wgpu::BindGroupEntry { binding: 6, resource: wgpu::BindingResource::TextureView(&arr) },
+                    wgpu::BindGroupEntry { binding: 7, resource: wgpu::BindingResource::Sampler(&self.s_lin) },
+                    wgpu::BindGroupEntry { binding: 8, resource: wgpu::BindingResource::Sampler(&self.s_near) },
+                ],
+            }));
+        }
+        if air_changed {
+            let view = |t: &wgpu::Texture| t.create_view(&Default::default());
+            let arr = self.blank_arr.create_view(&wgpu::TextureViewDescriptor { dimension: Some(wgpu::TextureViewDimension::D2Array), ..Default::default() });
+            let (hv, cv, ov, zv, iv) = (view(&s.air_h.1), view(&s.air_c.1), view(&s.o.1), view(&s.z.1), view(&self.blank));
+            s.bind_air = Some(device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: None,
+                layout: &self.bgl,
+                entries: &[
+                    wgpu::BindGroupEntry { binding: 0, resource: self.ubuf_air.as_entire_binding() },
                     wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&hv) },
                     wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::TextureView(&cv) },
                     wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::TextureView(&ov) },
@@ -746,11 +849,27 @@ fn build_lines(v: &Viewer) -> (Vec<f32>, Vec<f32>) {
             }
         }
     }
+    if v.sw.on(Sw::Caps) || v.is_heli() {
+        for pd in &map.meta.helipads {
+            let hc = rgb(if pd.team == 1 { 0x4fb3e8 } else { 0xf09648 });
+            let (ux, uz) = pd.basis();
+            let r = 13.0;
+            let y = pd.y + 0.35;
+            let wpt = |lx: f64, lz: f64| [pd.x + lx * ux - lz * uz, y, pd.z + lx * uz + lz * ux];
+            let sq = [wpt(-r, -r), wpt(r, -r), wpt(r, r), wpt(-r, r), wpt(-r, -r)];
+            for w in sq.windows(2) {
+                seg(&mut l, w[0], w[1], hc);
+            }
+            let yr = pd.yaw * crate::core::DEG;
+            seg(&mut l, [pd.x, y, pd.z], [pd.x + yr.sin() * 68.0, y + 3.0, pd.z + yr.cos() * 68.0], hc);
+        }
+    }
     let high = v.high_shown().map(|(x, z, _)| Pt { x, z });
     for (pt, col) in [(v.a, COL_A), (v.b, COL_BPT), (high, COL_HIGH)] {
         if let Some(p) = pt {
             let g = if col == COL_HIGH { t.height_at(p.x, p.z) } else { map.stand(p.x, p.z) }; // the highest point is bare ground
-            seg(&mut l, [p.x, g, p.z], [p.x, g + 25.0, p.z], rgb(col));
+            let top = if col == COL_A && v.is_heli() { g + v.heli_agl.max(25.0) } else { g + 25.0 };
+            seg(&mut l, [p.x, g, p.z], [p.x, top, p.z], rgb(col));
         }
     }
     let mut c: Vec<f32> = vec![];
@@ -771,7 +890,7 @@ fn build_lines(v: &Viewer) -> (Vec<f32>, Vec<f32>) {
                     let s = end * k as f64 / n as f64;
                     let (x, z) = (a.x + aim.dir.0 * s, a.z + aim.dir.1 * s);
                     let y = q.tr.at(Key::Y, s);
-                    ([x, y, z], [x, y.min(map.tr.height_at(x, z)), z])
+                    ([x, y, z], [x, y.min(map.surf_at(&map.tr, x, z)), z])
                 };
                 let vtx = |c: &mut Vec<f32>, p: [f64; 3], al: f32| c.extend(p.iter().map(|&x| x as f32).chain(col).chain([al]));
                 let (mut t0, mut b0) = col_at(0);
@@ -830,14 +949,15 @@ pub fn prepare(v: &mut Viewer, window: &mut Window, cx: &mut Context<Viewer>) {
     }
     v.zone_layer(); // the zone texture is shared with 2D and built on demand
     let scale = window.scale_factor();
+    let eff_scale = if v.is_dragging_3d() { scale.min(1.0) } else { scale };
     let (w, h) = (f32::from(v.map_bounds().size.width).max(16.0), f32::from(v.map_bounds().size.height).max(16.0));
     let mut st = std::collections::hash_map::DefaultHasher::new();
     let c = &v.v3.cam;
-    for f in [c.tx, c.ty, c.tz, c.yaw, c.pitch, c.dist, c.aim_fov, c.zoom, w as f64, h as f64, scale as f64] {
+    for f in [c.tx, c.ty, c.tz, c.yaw, c.pitch, c.dist, c.aim_fov, c.zoom, w as f64, h as f64, eff_scale as f64, v.heli_agl, v.heli_spd] {
         f.to_bits().hash(&mut st);
     }
     (v.aim_ready(), v.view_mode as u8, v.detail, v.sw_bits(), v.mission, v.mode as u8, v.tanks.values().filter(|m| m.is_some()).count(), v.tank).hash(&mut st);
-    (v.map.as_ref().map(ptr), v.map_img.as_ref().map(|l| ptr(&l.rgba)), v.zones_img.as_ref().map(|z| ptr(&z.1.rgba)), v.overlay.as_ref().map(|o| ptr(&o.1.rgba))).hash(&mut st);
+    (v.map.as_ref().map(ptr), v.map_img.as_ref().map(|l| ptr(&l.rgba)), v.air_img.as_ref().map(|l| ptr(&l.rgba)), v.zones_img.as_ref().map(|z| ptr(&z.1.rgba)), v.overlay.as_ref().map(|o| ptr(&o.1.rgba))).hash(&mut st);
     let key = st.finish();
     if key == v.v3.key && !v.v3.dirty && v.v3.frame.is_some() {
         return;
@@ -845,7 +965,7 @@ pub fn prepare(v: &mut Viewer, window: &mut Window, cx: &mut Context<Viewer>) {
     let mut v3 = std::mem::take(&mut v.v3);
     v3.key = key;
     v3.dirty = false;
-    match v3.render(v, w, h, scale) {
+    match v3.render(v, w, h, eff_scale) {
         Ok(img) => {
             if let Some(old) = v3.frame.replace(img) {
                 window.drop_image(old).ok();
@@ -865,10 +985,18 @@ impl View3D {
         self.camera(v, w, h);
         let map = v.map.as_ref().expect("map");
         let t = &map.t;
+        let fr = frustum(&self.vp);
+        let lod = LODK[v.detail.min(3)];
         let mut nodes = vec![];
         let root = P.max((t.w.max(t.hh) as f64 - 1.0).log2().ceil().exp2() as usize);
-        collect(t, self.eye, &frustum(&self.vp), 0, 0, root, &mut nodes, LODK[v.detail.min(3)]);
-        self.n_patches = nodes.len() / 3;
+        collect(t, self.eye, &fr, 0, 0, root, &mut nodes, lod);
+        let mut nodes_air = vec![];
+        if let (Some(ta), true) = (&map.t_air, v.air_img.is_some()) {
+            let root_air = P.max((ta.w.max(ta.hh) as f64 - 1.0).log2().ceil().exp2() as usize);
+            collect(ta, self.eye, &fr, 0, 0, root_air, &mut nodes_air, lod);
+        }
+        let n_air_patches = (nodes_air.len() / 3) as u32;
+        self.n_patches = nodes.len() / 3 + n_air_patches as usize;
         let (lines, curtain) = build_lines(v);
 
         let gpu = self.gpu.as_mut().unwrap();
@@ -876,6 +1004,7 @@ impl View3D {
         let (pw, ph) = ((w * scale).round() as u32, (h * scale).round() as u32);
         gpu.target(pw, ph);
         Gpu::stream(&gpu.device, &gpu.queue, &mut gpu.nodes, bytemuck::cast_slice(&nodes));
+        Gpu::stream(&gpu.device, &gpu.queue, &mut gpu.nodes_air, bytemuck::cast_slice(&nodes_air));
         Gpu::stream(&gpu.device, &gpu.queue, &mut gpu.lines, bytemuck::cast_slice(&lines));
         Gpu::stream(&gpu.device, &gpu.queue, &mut gpu.curtain, bytemuck::cast_slice(&curtain));
         let s = gpu.scene.as_ref().unwrap();
@@ -892,17 +1021,32 @@ impl View3D {
             zn: [(t.ox - t.cell / 2.0) as f32, (t.z1 + t.cell / 2.0 - zsize) as f32, (1.0 / zsize) as f32, 0.0],
             ov,
             flags: [f32::from(u8::from(v.sw.on(Sw::Grid))), f32::from(u8::from(v.sw.on(Sw::GroundDetail) && s.det.0 != 1)), 0.0, 0.0],
+            clip_inner: [0.0; 4],
             tiles: s.det.3,
         };
         gpu.queue.write_buffer(&gpu.ubuf, 0, bytemuck::bytes_of(&u));
+        let has_air = if let (Some(ta), true) = (&map.t_air, v.air_img.is_some()) {
+            let mut u_air = u;
+            u_air.map = [ta.ox as f32, ta.oz as f32, ta.cell as f32, map.meta.water.unwrap_or(0.0) as f32];
+            u_air.uv = [(ta.ox - ta.cell / 2.0) as f32, (ta.oz - ta.cell / 2.0) as f32, (1.0 / (ta.w as f64 * ta.cell)) as f32, (1.0 / (ta.hh as f64 * ta.cell)) as f32];
+            u_air.flags = [f32::from(u8::from(v.sw.on(Sw::Grid))), 0.0, 1.0, 0.0];
+            u_air.clip_inner = [t.ox as f32, t.oz as f32, t.x1 as f32, t.z1 as f32];
+            gpu.queue.write_buffer(&gpu.ubuf_air, 0, bytemuck::bytes_of(&u_air));
+            true
+        } else {
+            false
+        };
         // tanks: A = the picked tank (not in the aim view: the camera sits in it) along its driven heading, else
         // facing B; B = the target facing A. Both pitch and roll with the surface under them.
         let mut tank_draws: Vec<(&Mesh, u64)> = vec![];
         if v.sw.on(Sw::Tanks) {
-            let model_a = v.index.tanks.get(v.tank).and_then(|t| t.model.clone()).filter(|_| !v.aim_ready());
+            let model_a = v.index.tanks.get(v.tank).and_then(|t| t.model.clone()).filter(|_| !v.aim_ready() && !v.is_heli());
             let mut inst: Vec<f32> = vec![];
             for (model, p, q, heading, col) in [(model_a, v.a, v.b, v.heading, [0.78, 0.6, 0.3]), (v.b.map(|_| TARGET_MODEL.to_string()), v.b, v.a, None, [0.36, 0.58, 0.8])] {
                 let (Some(model), Some(p)) = (model, p) else { continue };
+                if !map.tr.inside(p.x, p.z) {
+                    continue;
+                }
                 let Some(mesh) = gpu.tanks.get(&model) else { continue };
                 let dir = match heading {
                     Some(h) => (h.sin(), h.cos()),
@@ -938,13 +1082,20 @@ impl View3D {
                 occlusion_query_set: None,
                 multiview_mask: None,
             });
-            rp.set_bind_group(0, s.bind.as_ref().unwrap(), &[]);
             let p = &gpu.pipes;
             rp.set_pipeline(&p.terrain);
             rp.set_vertex_buffer(0, gpu.grid.0.slice(..));
-            rp.set_vertex_buffer(1, gpu.nodes.0.slice(..));
             rp.set_index_buffer(gpu.grid.1.slice(..), wgpu::IndexFormat::Uint16);
-            rp.draw_indexed(0..gpu.grid.2, 0, 0..self.n_patches as u32);
+            if has_air && n_air_patches > 0 {
+                rp.set_bind_group(0, s.bind_air.as_ref().unwrap(), &[]);
+                rp.set_vertex_buffer(1, gpu.nodes_air.0.slice(..));
+                rp.draw_indexed(0..gpu.grid.2, 0, 0..n_air_patches);
+            }
+            rp.set_bind_group(0, s.bind.as_ref().unwrap(), &[]);
+            if !nodes.is_empty() {
+                rp.set_vertex_buffer(1, gpu.nodes.0.slice(..));
+                rp.draw_indexed(0..gpu.grid.2, 0, 0..(nodes.len() / 3) as u32);
+            }
             let draw_mesh = |rp: &mut wgpu::RenderPass, m: &Mesh, inst: wgpu::BufferSlice, count: u32| {
                 rp.set_vertex_buffer(0, m.pos.slice(..));
                 rp.set_vertex_buffer(1, m.nrm.slice(..));
@@ -959,6 +1110,9 @@ impl View3D {
                 }
             };
             rp.set_pipeline(&p.build);
+            for (mid, ibuf, cnt) in &s.pads {
+                draw_mesh(&mut rp, &gpu.pad_meshes[*mid], ibuf.slice(..), *cnt);
+            }
             if v.sw.on(Sw::Build) {
                 for b in &s.obj.1 {
                     draw_mesh(&mut rp, &b.mesh, b.inst.slice(..), b.count);
@@ -978,6 +1132,11 @@ impl View3D {
             }
             if map.meta.water.is_some() && v.sw.on(Sw::Water) {
                 rp.set_pipeline(&p.water);
+                if has_air {
+                    rp.set_bind_group(0, s.bind_air.as_ref().unwrap(), &[]);
+                    rp.draw(0..4, 0..1);
+                    rp.set_bind_group(0, s.bind.as_ref().unwrap(), &[]);
+                }
                 rp.draw(0..4, 0..1);
             }
             if !curtain.is_empty() {
@@ -1042,11 +1201,20 @@ pub fn paint(v: &mut Viewer, b: Bounds<Pixels>, window: &mut Window, cx: &mut Ap
             }
         }
     }
+    let heli = v.is_heli();
+    if !aim_mode && (v.sw.on(Sw::Caps) || heli) {
+        for pd in &map.meta.helipads {
+            let hc = if pd.team == 1 { 0x4fb3e8 } else { 0xf09648 };
+            dot(window, cx, proj(pd.x, pd.y + 18.0, pd.z), hc, &pd.short, 4.5);
+        }
+    }
     if !aim_mode {
-        for (pt, label, col) in [(v.a, "A", COL_A), (v.b, "B", COL_BPT)] {
-            if let Some(q) = pt {
-                dot(window, cx, proj(q.x, map.stand(q.x, q.z) + 25.0, q.z), col, label, 6.0);
-            }
+        if let Some(q) = v.a {
+            let lbl = if heli { format!("A (+{:.0}m)", v.heli_agl) } else { "A".into() };
+            dot(window, cx, proj(q.x, map.stand(q.x, q.z) + if heli { v.heli_agl.max(25.0) } else { 25.0 }, q.z), COL_A, &lbl, 6.0);
+        }
+        if let Some(q) = v.b {
+            dot(window, cx, proj(q.x, map.stand(q.x, q.z) + 25.0, q.z), COL_BPT, "B", 6.0);
         }
     }
     if let Some((x, z, h)) = v.high_shown() {
@@ -1054,7 +1222,7 @@ pub fn paint(v: &mut Viewer, b: Bounds<Pixels>, window: &mut Window, cx: &mut Ap
     }
     if let (Some(aim), Some(a), Some(bb)) = (&v.aim, v.a, v.b) {
         if v.sw.on(Sw::Arc) {
-            draw_arcs(v, &map.tr, aim, a, ox, oy, aim_mode, window, cx);
+            draw_arcs(v, &map, &map.tr, aim, a, ox, oy, aim_mode, window, cx);
         }
         for q in &aim.sols {
             if let Some(bl) = q.blocked {
@@ -1075,15 +1243,31 @@ pub fn paint(v: &mut Viewer, b: Bounds<Pixels>, window: &mut Window, cx: &mut Ap
                 paint::stroke(window, &[paint::p(seg[0].0, seg[0].1), paint::p(seg[1].0, seg[1].1)], 1.0, white, None, false);
             }
             let los_ang = aim.dy.atan2(aim.d);
+            let az_deg = ((bb.x - a.x).atan2(bb.z - a.z) / crate::core::DEG + 360.0) % 360.0;
             for (i, q) in aim.sols.iter().enumerate() {
                 let Some(p) = proj(bb.x, aim.y_a + aim.d * q.e.tan(), bb.z) else { continue };
                 let col = color(if q.blocked.is_none() { if i > 0 { COL_B } else { COL_A } } else { 0xe2574c }, 1.0);
                 paint::stroke(window, &[point(p.x - px(14.), p.y), point(p.x + px(14.), p.y)], 2.0, col, None, false);
                 paint::stroke(window, &[point(p.x, p.y - px(5.)), point(p.x, p.y + px(5.))], 2.0, col, None, false);
-                let name = if aim.sols.len() > 1 { if i > 0 { "高抛曲射" } else { "低伸直射" } } else { "瞄准点" };
-                paint::mono(window, cx, &format!("{name} +{} 密位, 抬高 {:.2} m{}", scene::mil(q.e - los_ang), aim.d * q.e.tan() - aim.dy, if q.blocked.is_none() { "" } else { " [受阻]" }), point(p.x + px(18.), p.y - px(6.)), col, 12.0);
+                if heli {
+                    let deg = q.e / crate::core::DEG;
+                    paint::mono(window, cx, &format!("方位 {:05.1}° · 机头仰角 {:+.2}° (+{}mil){}", az_deg, deg, scene::mil(q.e - los_ang), if q.blocked.is_none() { "" } else { " [受阻]" }), point(p.x + px(18.), p.y - px(6.)), col, 12.0);
+                } else {
+                    let name = if aim.sols.len() > 1 { if i > 0 { "高抛曲射" } else { "低伸直射" } } else { "瞄准点" };
+                    paint::mono(window, cx, &format!("{name} +{} 密位, 抬高 {:.2} m{}", scene::mil(q.e - los_ang), aim.d * q.e.tan() - aim.dy, if q.blocked.is_none() { "" } else { " [受阻]" }), point(p.x + px(18.), p.y - px(6.)), col, 12.0);
+                }
             }
-            let head = if sight { format!("炮长瞄准镜 {:.1}×，视场 {:.1}°（滚轮变倍），目标 B 距离 {:.0} m", v3.cam.zoom, sight_fov(v3.cam.zoom), aim.d) } else { format!("从 A 瞄向 B：距离 {:.0} m，视场 {:.1}°（滚轮缩放）", aim.d, v3.cam.aim_fov) };
+            let head = if sight {
+                if heli {
+                    format!("机载瞄准镜 {:.1}× · 方位 {:05.1}° · 离地 +{:.0}m · 距离 {:.0} m", v3.cam.zoom, az_deg, v.heli_agl, aim.d)
+                } else {
+                    format!("炮长瞄准镜 {:.1}×，视场 {:.1}°（滚轮变倍），目标 B 距离 {:.0} m", v3.cam.zoom, sight_fov(v3.cam.zoom), aim.d)
+                }
+            } else if heli {
+                format!("空中机头视角（方位 {:05.1}°，离地 +{:.0}m）：距离 {:.0} m，视场 {:.1}°", az_deg, v.heli_agl, aim.d, v3.cam.aim_fov)
+            } else {
+                format!("从 A 瞄向 B：距离 {:.0} m，视场 {:.1}°（滚轮缩放）", aim.d, v3.cam.aim_fov)
+            };
             paint::mono(window, cx, &format!("{head}{}", if aim.sols.is_empty() { "，当前无可行射击诸元" } else { "" }), paint::p(ox + 10.0, oy + 8.0), color(0xffffff, 1.0), 12.0);
         }
     }
@@ -1095,7 +1279,7 @@ pub fn paint(v: &mut Viewer, b: Bounds<Pixels>, window: &mut Window, cx: &mut Ap
 /// Shell arcs: thick path with a dark edge, faint and dashed where terrain or roofs hide it, a dot every 0.5 s,
 /// the apex and the impact (at B or where blocked). Labels in orbit view only.
 #[allow(clippy::too_many_arguments)]
-fn draw_arcs(v: &Viewer, tr_s: &Terrain, aim: &scene::Aim, a: Pt, ox: f32, oy: f32, aim_mode: bool, window: &mut Window, cx: &mut App) {
+fn draw_arcs(v: &Viewer, map: &crate::data::LoadedMap, tr_s: &Terrain, aim: &scene::Aim, a: Pt, ox: f32, oy: f32, aim_mode: bool, window: &mut Window, cx: &mut App) {
     let v3 = &v.v3;
     let proj = |w: [f64; 3]| v3.project(w[0], w[1], w[2]).map(|(x, y)| paint::p(ox + x, oy + y));
     for (i, q) in aim.sols.iter().enumerate() {
@@ -1104,7 +1288,7 @@ fn draw_arcs(v: &Viewer, tr_s: &Terrain, aim: &scene::Aim, a: Pt, ox: f32, oy: f
         let colh = if i > 0 { COL_B } else { COL_A };
         let at = |s: f64| [a.x + aim.dir.0 * s, tr.at(Key::Y, s), a.z + aim.dir.1 * s];
         let n = 160;
-        let pts: Vec<(Option<gpui::Point<Pixels>>, bool)> = (0..=n).map(|k| { let w = at(end * k as f64 / n as f64); (proj(w), v3.hidden_from(tr_s, w)) }).collect();
+        let pts: Vec<(Option<gpui::Point<Pixels>>, bool)> = (0..=n).map(|k| { let w = at(end * k as f64 / n as f64); (proj(w), v3.hidden_from(map, tr_s, w)) }).collect();
         for pass in [0, 1] {
             let mut k = 1;
             while k <= n {
@@ -1143,7 +1327,7 @@ fn draw_arcs(v: &Viewer, tr_s: &Terrain, aim: &scene::Aim, a: Pt, ox: f32, oy: f
             }
             next += 0.5;
             let w = [a.x + aim.dir.0 * tr.s[k], tr.y[k], a.z + aim.dir.1 * tr.s[k]];
-            if let (Some(p), false) = (proj(w), v3.hidden_from(tr_s, w)) {
+            if let (Some(p), false) = (proj(w), v3.hidden_from(map, tr_s, w)) {
                 paint::dot(window, p, 3.0, Some(color(0xffffff, 1.0)), Some((color(colh, 1.0), 2.0)));
             }
         }
@@ -1179,6 +1363,8 @@ fn draw_sight(v: &Viewer, aim: &scene::Aim, ox: f32, oy: f32, window: &mut Windo
     let k = (h / 2.0) as f64 / (sight_fov(v3.cam.zoom).to_radians() / 2.0).tan(); // px per unit of tan(angle)
     let at = |a: f64| (k * a.tan()) as f32;
     let mil = std::f64::consts::PI / 3200.0;
+    let heli = v.is_heli();
+    let v_air = v.heli_v_air();
     // eyepiece: solid quads outside the circle's square (tessellated paths leave seams the scene shows through),
     // and the square with a round hole (lyon fills even-odd) for the corners
     let dark = color(0x050607, 1.0);
@@ -1207,7 +1393,7 @@ fn draw_sight(v: &Viewer, aim: &scene::Aim, ox: f32, oy: f32, window: &mut Windo
         window.paint_path(path, dark);
     }
     paint::stroke(window, &ring, 3.0, color(0x000000, 1.0), None, true);
-    let ink = color(0x0c0c0c, 1.0);
+    let ink = if heli { color(0x5ceb94, 0.90) } else { color(0x0c0c0c, 1.0) };
     let line = |window: &mut Window, x0: f32, y0: f32, x1: f32, y1: f32, wd: f32| paint::stroke(window, &[paint::p(x0, y0), paint::p(x1, y1)], wd, ink, None, false);
     line(window, cx_ - r, cy, cx_ - 5.0, cy, 1.5);
     line(window, cx_ + 5.0, cy, cx_ + r, cy, 1.5);
@@ -1227,13 +1413,12 @@ fn draw_sight(v: &Viewer, aim: &scene::Aim, ox: f32, oy: f32, window: &mut Windo
             }
         }
     }
-    // range marks: below the centre by the drop angle of a level shot (target at muzzle height)
-    // shortcut: ignores the slope to the target, fine for the few degrees tank shots have
     if let Some(sh) = v.shell() {
-        let max_r = 4000.0;
-        let use_exact = sh.rocket.is_some() || sh.v0 < 350.0;
-        let tr = (!use_exact).then(|| crate::core::simulate(sh, 0.0, aim.y_a, max_r + 1.0, Default::default()));
-        let mut rng = 200.0;
+        let (max_r, step_r) = if heli { (8000.0, 500.0) } else { (4000.0, 200.0) };
+        let use_exact = sh.rocket.is_some() || sh.v0 < 350.0 || v_air > 0.0;
+        let tr = (!use_exact).then(|| crate::core::simulate(sh, 0.0, aim.y_a, max_r + 1.0, crate::core::SimOpt { v_air, ..Default::default() }));
+        let fan = use_exact.then(|| crate::core::build_traj_fan(sh, aim.y_a, if heli { -35.0 } else { -5.0 }, 45.0, v_air, max_r + 50.0, aim.y_a - v.heli_agl - 1000.0));
+        let mut rng = step_r;
         while rng <= max_r {
             let elev = if let Some(tr) = &tr {
                 let y = tr.at(Key::Y, rng);
@@ -1242,21 +1427,23 @@ fn draw_sight(v: &Viewer, aim: &scene::Aim, ox: f32, oy: f32, window: &mut Windo
                 }
                 ((aim.y_a - y) / rng).atan()
             } else {
-                let Some(&e) = crate::core::solve_exact(sh, rng, 0.0, aim.y_a, -5.0, 45.0).first() else { break };
+                let dy_t = if heli { -v.heli_agl } else { 0.0 };
+                let Some(&(e, _)) = fan.as_ref().unwrap().solve(sh, rng, dy_t).first() else { break };
                 e
             };
-            let dy = at(elev);
+            let dy = at(elev - if heli { (-v.heli_agl).atan2(rng) } else { 0.0 });
             if dy > r - 10.0 {
                 break;
             }
-            let major = (rng as i64) % 400 == 0;
+            let major = if heli { (rng as i64) % 1000 == 0 } else { (rng as i64) % 400 == 0 };
             if dy > 2.0 {
                 line(window, cx_ - if major { 16.0 } else { 9.0 }, cy + dy, cx_ - 2.0, cy + dy, 1.2);
                 if major {
-                    paint::text(window, cx, &format!("{}", rng as i64 / 100), paint::p(cx_ - 34.0, cy + dy - 7.0), ink, 10.0, true);
+                    let lbl = if heli { format!("{}km", (rng / 1000.0) as i64) } else { format!("{}", rng as i64 / 100) };
+                    paint::text(window, cx, &lbl, paint::p(cx_ - 36.0, cy + dy - 7.0), ink, 10.0, true);
                 }
             }
-            rng += 200.0;
+            rng += step_r;
         }
     }
 }

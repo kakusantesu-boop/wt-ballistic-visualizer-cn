@@ -205,6 +205,7 @@ pub struct Params {
     pub range: f64,
     pub gun_h: f64,
     pub tgt_h: f64,
+    pub v_air: f64,
 }
 
 pub struct Sol {
@@ -229,7 +230,11 @@ pub struct Aim {
 }
 
 fn what(t: &Terrain, a: Pt, dir: (f64, f64), s: f64) -> &'static str {
-    ["地形", "建筑/岩石掩体", "树木/灌木"][t.src_at(a.x + dir.0 * s, a.z + dir.1 * s).min(2) as usize]
+    let (x, z) = (a.x + dir.0 * s, a.z + dir.1 * s);
+    if !t.inside(x, z) {
+        return "外圈地形";
+    }
+    ["地形", "建筑/岩石掩体", "树木/灌木"][t.src_at(x, z).min(2) as usize]
 }
 
 /// tc: what shots collide with, ts: what blocks sight.
@@ -240,14 +245,14 @@ pub fn compute_aim(map: &LoadedMap, tc: &Terrain, ts: &Terrain, shell: &Shell, a
     let d = (b.x - a.x).hypot(b.z - a.z);
     let dy = y_b - y_a;
     let dir = if d > 0.0 { ((b.x - a.x) / d, (b.z - a.z) / d) } else { (0.0, 1.0) };
-    let step = t.cell / 2.0;
-    let los = core::los_blocked(ts, a, y_a, b, y_b, step);
+    let step = if d > 6000.0 { t.cell.max(3.0) } else { t.cell / 2.0 };
+    let los = core::los_blocked_with(|x, z| map.surf_at(ts, x, z), a, y_a, b, y_b, step);
     let sols = if d > 1.0 {
-        core::solve_exact(shell, d, dy, y_a, p.p_min, p.p_max)
+        core::solve_exact_air(shell, d, dy, y_a, p.p_min, p.p_max, p.v_air)
             .into_iter()
             .map(|e| {
-                let tr = core::simulate(shell, e, y_a, d + 1.0, Default::default());
-                let blocked = core::path_blocked(tc, a, dir, &tr, d, step);
+                let tr = core::simulate(shell, e, y_a, d + 2.0, core::SimOpt { v_air: p.v_air, ..Default::default() });
+                let blocked = core::path_blocked_with(|x, z| map.surf_at(tc, x, z), a, dir, &tr, d, step);
                 Sol { e, t: tr.at(Key::T, d), v: tr.at(Key::V, d), by: blocked.map_or("", |s| what(tc, a, dir, s)), blocked, tr }
             })
             .collect()
@@ -259,6 +264,201 @@ pub fn compute_aim(map: &LoadedMap, tc: &Terrain, ts: &Terrain, shell: &Shell, a
 
 pub fn mil(r: f64) -> String {
     format!("{:.1}", r * 3200.0 / std::f64::consts::PI)
+}
+
+pub fn compass_name(az_deg: f64) -> &'static str {
+    const DIRS: [&str; 16] = ["正北 N", "北偏东 NNE", "东北 NE", "东偏北 ENE", "正东 E", "东偏南 ESE", "东南 SE", "南偏东 SSE", "正南 S", "南偏西 SSW", "西南 SW", "西偏南 WSW", "正西 W", "西偏北 WNW", "西北 NW", "北偏西 NNW"];
+    DIRS[(((az_deg % 360.0) + 360.0) % 360.0 / 22.5).round() as usize % 16]
+}
+
+pub fn capture_zones_labeled(areas: &[Area]) -> Vec<(String, f64, f64)> {
+    let caps: Vec<&Area> = areas.iter().filter(|a| a.kind == "capture").collect();
+    caps.iter()
+        .enumerate()
+        .map(|(i, a)| {
+            let nl = a.name.to_lowercase();
+            let letter = if nl.contains("_01") || nl.ends_with("_a") {
+                "A".to_string()
+            } else if nl.contains("_02") || nl.ends_with("_b") {
+                "B".to_string()
+            } else if nl.contains("_03") || nl.ends_with("_c") {
+                "C".to_string()
+            } else if nl.contains("_04") || nl.ends_with("_d") {
+                "D".to_string()
+            } else {
+                char::from_u32('A' as u32 + i as u32).unwrap_or('Z').to_string()
+            };
+            let label = if caps.len() == 1 { "战区点 A".into() } else { format!("战区 {letter}") };
+            (label, a.tm[3][0], a.tm[3][2])
+        })
+        .collect()
+}
+
+pub fn tank_spawn_clusters(areas: &[Area]) -> Vec<(String, f64, f64)> {
+    let mut out = vec![];
+    for team in [1i64, 2i64] {
+        let sp: Vec<&Area> = areas.iter().filter(|a| a.kind == "spawn" && a.team == Some(team)).collect();
+        if sp.is_empty() {
+            continue;
+        }
+        let mut clusters: Vec<Vec<&Area>> = vec![];
+        for s in sp {
+            let (sx, sz) = (s.tm[3][0], s.tm[3][2]);
+            if let Some(cl) = clusters.iter_mut().find(|c| {
+                let cx = c.iter().map(|p| p.tm[3][0]).sum::<f64>() / c.len() as f64;
+                let cz = c.iter().map(|p| p.tm[3][2]).sum::<f64>() / c.len() as f64;
+                (sx - cx).hypot(sz - cz) < 260.0
+            }) {
+                cl.push(s);
+            } else {
+                clusters.push(vec![s]);
+            }
+        }
+        for (idx, cl) in clusters.iter().enumerate() {
+            let cx = cl.iter().map(|p| p.tm[3][0]).sum::<f64>() / cl.len() as f64;
+            let cz = cl.iter().map(|p| p.tm[3][2]).sum::<f64>() / cl.len() as f64;
+            let sfx = if clusters.len() > 1 { format!("#{}", idx + 1) } else { String::new() };
+            out.push((format!("{team}队陆战出生{sfx}"), cx, cz));
+        }
+    }
+    out
+}
+
+#[allow(dead_code)]
+fn pitch_span_05(sh: &Shell, e_rad: f64, y_a: f64, y_target: f64, v_air: f64) -> Option<f64> {
+    let hit = |ang: f64| -> Option<f64> {
+        let tr = core::simulate(sh, ang, y_a, 30000.0, core::SimOpt { y_floor: Some(y_target - 20.0), v_air, ..Default::default() });
+        for k in 1..tr.s.len() {
+            if tr.y[k] <= y_target && tr.y[k - 1] >= y_target {
+                let w = (tr.y[k - 1] - y_target) / (tr.y[k - 1] - tr.y[k]).max(1e-6);
+                return Some(tr.s[k - 1] + (tr.s[k] - tr.s[k - 1]) * w);
+            }
+        }
+        None
+    };
+    let s1 = hit(e_rad - 0.5 * DEG)?;
+    let s2 = hit(e_rad + 0.5 * DEG)?;
+    Some((s2 - s1).abs())
+}
+
+/// Helicopter firing table & HUD lines for the desktop Aim card, plus cached rocket max envelope (m).
+#[allow(clippy::too_many_arguments)]
+pub fn heli_aim_lines(map: &LoadedMap, tc: &Terrain, areas: &[Area], shell: &Shell, a: Pt, aim: Option<&Aim>, p: &Params) -> (Vec<(String, u8)>, Option<f64>) {
+    let mut out = vec![];
+    let g_a = map.stand(a.x, a.z);
+    let y_a = g_a + p.gun_h;
+    let caps = capture_zones_labeled(areas);
+    let ref_ground = caps.first().map_or((map.t.lo + map.t.hi) * 0.5, |c| map.stand(c.1, c.2));
+    let floor_y = ref_ground.min(map.t.lo) - 180.0;
+    let fan = core::build_traj_fan(shell, y_a, p.p_min, p.p_max, p.v_air, 13000.0, floor_y);
+    let env = shell.rocket.map(|_| fan.envelope(ref_ground));
+    let spd_kmh = p.v_air * 3.6;
+
+    out.push((format!("机位高度  离地 +{:.0} m  |  海拔 {:.0} m  |  {}", p.gun_h, y_a, if spd_kmh > 0.5 { format!("空速 {:.0} km/h", spd_kmh) } else { "悬停 0 km/h".into() }), 0));
+    if let Some(ev) = env {
+        let cap_note = match ev.reason {
+            "time" => format!("受 {:.0}s 自毁限制", ev.t_life),
+            "dist" => format!("受 {:.1}km 自毁限制", ev.max_dist / 1000.0),
+            _ => "当前俯仰包线".into(),
+        };
+        out.push((format!("极限射程  约 {:.0} m（{}，最佳仰角 {:+.1}°）", ev.max_s, cap_note, ev.elev_deg), 0));
+    }
+
+    if let Some(aim) = aim {
+        let az = (aim.dir.0.atan2(aim.dir.1) / DEG + 360.0) % 360.0;
+        out.push((String::new(), 0));
+        if let Some(q) = aim.sols.iter().find(|s| s.blocked.is_none()).or_else(|| aim.sols.first()) {
+            let deg = q.e / DEG;
+            out.push((format!("★ 罗盘方位角  {:05.1}°（{}）", az, compass_name(az)), 1));
+            out.push((format!("★ 机头俯仰角  {:+.2}°（{} · {} 密位）", deg, if deg >= 0.0 { "抬头" } else { "压头" }, mil(q.e)), 1));
+            match q.blocked {
+                None => out.push((format!("  弹道畅通可命中 · 水平 {:.0} m（斜距 {:.0} m，高差 {:+.0} m）", aim.d, aim.d.hypot(aim.dy), aim.dy), 1)),
+                Some(s) => out.push((format!("  警告：在 {s:.0} m 处被{}遮挡！", q.by), 2)),
+            }
+            let mut life = format!("  飞行 {:.2} s · 落速 {:.0} m/s", q.t, q.v);
+            if let Some(rm) = shell.rocket {
+                if rm.t_life > 0.0 {
+                    life.push_str(&format!(" · 距自毁余 {:.1} s", (rm.t_life - q.t).max(0.0)));
+                } else if rm.max_dist > 0.0 {
+                    life.push_str(&format!(" · 距自毁余 {:.2} km", ((rm.max_dist - aim.d.hypot(aim.dy)) / 1000.0).max(0.0)));
+                }
+            }
+            out.push((life, 0));
+            if let Some(sp05) = fan.span_05(q.e, aim.y_b) {
+                let disp_txt = shell.rocket.filter(|r| r.disp > 0.0).map_or(String::new(), |r| format!(" · 散布 ±{:.0} m", aim.d * (r.disp * 0.45 * DEG).tan()));
+                out.push((format!("  ±0.5° 仰角齐射覆盖 ≈ {:.0} m{disp_txt}", sp05), 0));
+            }
+        } else {
+            out.push((format!("★ 罗盘方位角  {:05.1}°（{}）   机头仰角：不可达", az, compass_name(az)), 2));
+            if let Some(ev) = env.filter(|ev| ev.max_s > 0.0 && aim.d > ev.max_s) {
+                let short = (aim.d - ev.max_s).round();
+                let why = match ev.reason {
+                    "time" => format!("飞满 {:.0}s 强制半空自爆", ev.t_life),
+                    "dist" => format!("满 {:.1}km 最大距离自爆", ev.max_dist / 1000.0),
+                    _ => "超出射程".into(),
+                };
+                out.push((format!("  【超距自毁】{}，最远约 {:.0} m（差 {:.0} m，请前移或提速）", why, ev.max_s, short), 2));
+            } else {
+                out.push((format!("  当前距离 {:.0} m 超出射界 {}..{}°", aim.d, p.p_min, p.p_max), 2));
+            }
+        }
+    } else {
+        out.push(("右键点击地图放置目标点 B，或直接参考下方战区速查射表：".into(), 0));
+    }
+
+    // Multi-target tactical table (Captures + Spawns) solved from the single pre-built TrajFan
+    let mut rows = caps;
+    rows.extend(tank_spawn_clusters(areas));
+    if !rows.is_empty() {
+        out.push((String::new(), 0));
+        out.push(("── 本局关键点位速查射表（方位 / 机头仰角 / 距离 / 飞行）──".into(), 0));
+        let step = map.t.cell.max(8.0);
+        for (label, tx, tz) in rows {
+            let d = (tx - a.x).hypot(tz - a.z);
+            let az = ((tx - a.x).atan2(tz - a.z) / DEG + 360.0) % 360.0;
+            let y_b = map.stand(tx, tz) + p.tgt_h;
+            let sols = if d > 5.0 { fan.solve(shell, d, y_b - y_a) } else { vec![] };
+            let mut best: Option<(f64, f64, Option<f64>)> = None;
+            for (e, tof) in sols {
+                let tr = core::simulate(shell, e, y_a, d + 2.0, core::SimOpt { dt: 0.012, v_air: p.v_air, ..Default::default() });
+                let bl = core::path_blocked_with(|x, z| map.surf_at(tc, x, z), a, ((tx - a.x) / d, (tz - a.z) / d), &tr, d, step);
+                if bl.is_none() {
+                    best = Some((e, tof, None));
+                    break;
+                } else if best.is_none() {
+                    best = Some((e, tof, bl));
+                }
+            }
+            match best {
+                Some((e, tof, None)) => out.push((format!("{label:<8}  方位 {:05.1}°  仰角 {:+6.2}°  {:.0}m  {:.1}s  可达", az, e / DEG, d, tof), 1)),
+                Some((e, tof, Some(_))) => out.push((format!("{label:<8}  方位 {:05.1}°  仰角 {:+6.2}°  {:.0}m  {:.1}s  受阻", az, e / DEG, d, tof), 2)),
+                None => {
+                    let tag = if env.is_some_and(|ev| d > ev.max_s && matches!(ev.reason, "time" | "dist")) { "自毁超距" } else { "超射程" };
+                    out.push((format!("{label:<8}  方位 {:05.1}°  仰角    —    {:.0}m   —   {tag}", az, d), 2));
+                }
+            }
+        }
+    }
+
+    // Compact range ladder every 500m (0 extra trajectory simulations — tof comes straight from fan.solve!)
+    let dy_ref = ref_ground - y_a;
+    let max_l = env.map_or(6000.0, |ev| (ev.max_s / 500.0).ceil() * 500.0).clamp(1500.0, 10000.0);
+    let mut ladder = vec![];
+    let mut dist = 1000.0;
+    while dist <= max_l {
+        if let Some(&(e, tof)) = fan.solve(shell, dist, dy_ref).first() {
+            ladder.push(format!("{:.1}km:{:+.2}°({:.1}s)", dist / 1000.0, e / DEG, tof));
+        }
+        dist += 500.0;
+    }
+    if !ladder.is_empty() {
+        out.push((String::new(), 0));
+        out.push(("── 距离梯度速查（按战场基准海拔）──".into(), 0));
+        for ch in ladder.chunks(2) {
+            out.push((ch.join("   |   "), 0));
+        }
+    }
+    (out, env.map(|e| e.max_s).filter(|&s| s > 200.0))
 }
 
 /// The aim card text, one (text, kind) per line: kind 0 normal, 1 good, 2 bad.
@@ -344,7 +544,7 @@ pub fn run_sweep(kind: SweepKind, map: &LoadedMap, t: &Terrain, shell: &Shell, p
     let sp = SweepP { n_az, ds, range: p.range, gun_h: p.gun_h, tgt_h: p.tgt_h, y_pt };
     let tab = (kind != SweepKind::View).then(|| {
         let y_alt = y_pt + if kind == SweepKind::Reach { p.gun_h } else { p.tgt_h };
-        core::build_table(shell, p.p_min, p.p_max, e_step, y_alt, t.lo - 10.0, p.range, ds)
+        core::build_table_air(shell, p.p_min, p.p_max, e_step, y_alt, t.lo - 200.0, p.range, ds, p.v_air)
     });
     let n = tab.as_ref().map_or((p.range / ds).ceil() as usize + 1, |t| t.n);
     let chunk = 8;
@@ -352,10 +552,11 @@ pub fn run_sweep(kind: SweepKind, map: &LoadedMap, t: &Terrain, shell: &Shell, p
         .into_par_iter()
         .map(|c| {
             let (a0, a1) = (c * chunk, ((c + 1) * chunk).min(n_az));
+            let outer = map.t_air.as_deref();
             match (kind, &tab) {
-                (SweepKind::Reach, Some(tab)) => core::sweep_reach(t, tab, pt, &sp, a0, a1),
+                (SweepKind::Reach, Some(tab)) => core::sweep_reach_ext(t, outer, tab, pt, &sp, a0, a1),
                 (SweepKind::Hit, Some(tab)) => core::sweep_hit(t, tab, pt, &sp, a0, a1),
-                _ => core::sweep_view(t, pt, &sp, a0, a1),
+                _ => core::sweep_view_ext(t, outer, pt, &sp, a0, a1),
             }
         })
         .collect();
@@ -468,7 +669,7 @@ mod sweep_tests {
         let areas = mission_areas(map.meta.missions.iter().find(|m| m.name.ends_with("_dom")).unwrap(), GameMode::Realistic);
         let cap = areas.iter().find(|a| a.kind == "capture").unwrap();
         let pt = Pt { x: cap.tm[3][0] - 600.0, z: cap.tm[3][2] - 200.0 };
-        let p = Params { p_min: -10.0, p_max: 20.0, range: 2500.0, gun_h: 2.0, tgt_h: 1.5 };
+        let p = Params { p_min: -10.0, p_max: 20.0, range: 2500.0, gun_h: 2.0, tgt_h: 1.5, v_air: 0.0 };
         let all = run_sweep(SweepKind::Reach, &map, &map.tr, &sh, pt, &p, Perf::Fast, None);
         let z = Zones::of(&areas);
         let clip = run_sweep(SweepKind::Reach, &map, &map.tr, &sh, pt, &p, Perf::Fast, Some(&z));
@@ -494,7 +695,7 @@ mod stand_tests {
         let b = Pt { x: a.x + 300.0, z: a.z };
         let idx = crate::data::load_index(&store).unwrap();
         let sh = &idx.tanks[0].guns[0].shells[0];
-        let p = Params { p_min: -10.0, p_max: 20.0, range: 2500.0, gun_h: 2.0, tgt_h: 1.5 };
+        let p = Params { p_min: -10.0, p_max: 20.0, range: 2500.0, gun_h: 2.0, tgt_h: 1.5, v_air: 0.0 };
         let aim = compute_aim(&map, tr, tr, sh, a, b, &p);
         assert!((aim.g_a - tr.height_at(a.x, a.z)).abs() < 1e-9);
         assert!(aim.g_a > t.height_at(a.x, a.z) + 3.0);
@@ -512,7 +713,7 @@ mod pose_tests {
     fn hull_follows_the_slope() {
         let (w, cell) = (101, 2.0);
         let h16: Vec<u16> = (0..w * w).map(|i| (((0.1 * (i / w) as f64 * cell) + 50.0) / 250.0 * 65535.0).round() as u16).collect();
-        let meta = MapMeta { name: "slope".into(), bounds: None, width: w, height: w, cell, ox: 0.0, oz: 0.0, hmin: -50.0, hmax: 200.0, missions: vec![], water: None };
+        let meta = MapMeta { name: "slope".into(), bounds: None, width: w, height: w, cell, ox: 0.0, oz: 0.0, hmin: -50.0, hmax: 200.0, missions: vec![], water: None, helipads: vec![], air: None };
         let map = LoadedMap::new(meta, h16);
         let p = Pt { x: 100.0, z: 100.0 };
         let (f, u, s, base) = hull_pose(&map, p, (0.0, 1.0));
@@ -545,7 +746,7 @@ mod reach_clip_tests {
         let mut battle = full.clone();
         battle.kill.clear();
         let (x, z, _) = highest_point(&map, &full).unwrap();
-        let p = Params { p_min: -10.0, p_max: 20.0, range: 2500.0, gun_h: 2.0, tgt_h: 1.5 };
+        let p = Params { p_min: -10.0, p_max: 20.0, range: 2500.0, gun_h: 2.0, tgt_h: 1.5, v_air: 0.0 };
         let a = run_sweep(SweepKind::Reach, &map, &map.tr, &sh, Pt { x, z }, &p, Perf::Fast, Some(&battle));
         let b = run_sweep(SweepKind::Reach, &map, &map.tr, &sh, Pt { x, z }, &p, Perf::Fast, Some(&full));
         assert!(a.km2 > b.km2 + 0.01, "battle only {} vs without red zones {}", a.km2, b.km2);

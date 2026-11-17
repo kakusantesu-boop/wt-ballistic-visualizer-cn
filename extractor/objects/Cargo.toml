@@ -7,8 +7,10 @@ publish = false
 
 [dependencies]
 anyhow = "1"
-# wt-unpack's library, cloned next to this project (git clone https://github.com/patodois/wt-unpack wt-unpack-src)
-wt-unpack = { path = "../../wt-unpack-src" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# wt-unpack's library, cloned under i18n_src/wt-unpack-src
+wt-unpack = { path = "../../i18n_src/wt-unpack-src" }
 wt-formats = "0.1.0"
 
 [profile.release]

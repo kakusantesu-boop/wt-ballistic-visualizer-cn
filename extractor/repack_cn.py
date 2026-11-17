@@ -30,9 +30,9 @@ USER_GUIDE = """================================================================
 - 若首次打开弹出蓝色提示「Windows 已保护你的电脑」（因个人编译软件未购买商业数字证书）：
   点击窗口上的「更多信息」 -> 再点击下方出现的「仍要运行」即可正常启动。
 
-【2. 快速上手】
-1) 在左侧栏选择「作战地图」、「载具型号」和「选用弹药」。
-   下拉框支持直接输入中文、英文、外号或型号缩写搜索（例如：废弃工厂、安德柳沙、bm31、喀秋莎、突击虎、99a、2s38、APFSDS、HE）。
+【2. 快速上手（陆战火炮 & 火箭炮）】
+1) 在左侧栏选择「作战地图」、「载具型号」和「选用弹药」（上方可切换「全部 / 陆战 / 直升机」分类）。
+   下拉框支持直接输入中文、英文、外号或型号缩写搜索（例如：废弃工厂、安德柳沙、bm31、喀秋莎、突击虎、99a、2s38、卡-52、直-10、AH-64）。
 2) 在地图上点「鼠标左键」放置己方开火点 A，点「鼠标右键」放置目标点 B。
 3) 左侧「弹道解算 A → B」面板会实时给出：
    - 水平距离、斜距、海拔高差、方位角，以及视线是否被山体/房屋/树冠遮挡；
@@ -40,25 +40,33 @@ USER_GUIDE = """================================================================
 4) 在「观察视角」中可切换：
    - 2D 俯视地图（底部同步显示 A → B 沿线地形与弹道高低剖面）
    - 3D 自由环绕（左键拖动旋转，右键或 Shift+拖动平移，滚轮缩放，双击地面居中）
-   - 3D 炮口视角（从 A 点炮口望向 B 点）
-   - 3D 炮长瞄准镜（带密位横标尺与当前弹药距离分划，鼠标滚轮调节 1×~24× 倍率）
+   - 3D 炮口/机头视角（从 A 点望向 B 点）
+   - 3D 瞄准镜视角（带密位横标尺与当前弹药距离分划，鼠标滚轮调节 1×~24× 倍率）
 
-【3. 常用快捷键与进阶工具】
-- W / A / S / D（或方向键）：先点击一次地图区域后，可直接开车移动 A 点战车（车体自动贴合坡度与岩石高度）
+【3. 武装直升机火箭弹模式（新增）】
+1) 点击载具分类「直升机」（共收录 114 架武装直升机），选择机型与非制导火箭弹（如 S-8KO、九头蛇 70、S-13OF、90-1 型等）。
+2) 地图自动解锁外圈 20 km 空域，标出全部 56 张地图的 4 处真实停机坪（1队近H1 / 1队远H2 / 2队近H1 / 2队远H2）及起飞朝向。
+3) 点击「1队近H1」等按钮可一键落位停机坪，或在空域任意位置左键放置悬停机位 A；也可点击「标定B: 战区 A/B/C」快速设靶。
+4) 可自由调节「悬停离地高 AGL (m)」与「平飞空速 (km/h)」（0 为悬停，前飞时自动计入机身初速修正仰角）。
+5) 射表面板直接以游戏内武直 HUD 同款「罗盘方位角 (°) + 机头俯仰角 (°)」为核心显示，并同步生成：
+   - 本局全部占领战区（A/B/C）与双方陆战出生点的多目标速查射表；
+   - 距离梯度速查射表、±0.5° 仰角齐射落点跨度，以及火箭弹定时/定距半空自爆（如 S-8KO 15 秒自毁）极限射程圈与超距诊断。
+
+【4. 常用快捷键与进阶工具】
+- W / A / S / D（或方向键）：先点击一次地图区域后，可直接移动战车或飞行直升机（直升机模式下按 Q / E 升降悬停高度）
 - R 键：开启 / 关闭战场边界显示
 - / 键：快速聚焦地图搜索框
 - 寻找最高点：一键标出当前任务作战区内（不含红区）的最高地形点
-- A 点火力覆盖：扫描全图所有能被 A 点命中的区域
-- 可打到 B 的阵地：反推全图哪些位置能打中目标 B（绿色=直射可达，橙色=仅高抛曲射可达，蓝色=直射/曲射皆可）
-- A 点视野通视分析：标出 A 点可见范围及遮挡视线的障碍物类型（山体 / 建筑岩石 / 树木）
+- 全空域总览（直升机模式）：一键缩放至包含四座外圈停机坪与中央陆战区的全景视野
+- A 点火力覆盖 / 可打到 B 的阵地 / A 点视野通视分析：多线程全图扫描图层
 - 选择禁区红区：在「禁区红区」开关下方点击展开，可按编号单独开关某块出生点红区
 
-【4. 已知物理边界说明】
+【5. 已知物理边界说明】
 - 本工具完全离线运行，不读取或接触《战争雷霆》游戏进程，无任何反作弊风险。
-- 弹道采用质点气动物理与两级固体火箭发动机推力/减重模型解算，不含游戏内随机散布与风偏。
+- 弹道采用质点气动物理、马赫数阻力曲线与两级固体火箭发动机推力/减重/自毁引信模型解算，不含游戏内随机风偏。
+- 中心 4×4 km 陆战核心区含 1m 级 HM2 高程、房屋巨石与树冠三维遮挡；外圈 15~25 km 停机坪空域含战雷原版 LandMesh 全域地形高程与卫星地表贴图（外圈远景不含独立房屋三维网格）。
 - 标有「估算风阻」的老式炮弹因游戏原始文件未公开风阻系数，采用同弹种中位数估算，远距离落点存在近似偏差。
-- 标有「制导」的导弹（ATGM / SAM）在游戏内由瞄准线或雷达制导修正航迹，不会走纯无控抛物线，主要用于查验通视视线（LOS）、极速与射程范围。
-- 房屋、巨石、围墙按实体顶面高度包络计算阻挡（不能穿门窗或桥洞）；树木默认挡视野不挡炮弹（破甲弹/近炸弹可手动勾选「树木与灌木引爆/阻挡炮弹」）。
+- 标有「制导」的导弹（ATGM / SAM）在游戏内由瞄准线或雷达制导修正航迹，主要用于查验通视视线（LOS）、极速与射程范围。
 
 【5. 致谢与声明】
 - 本软件基于开源项目 Xander009/wt-ballistic-visualizer 本地化与扩展构建，载具与弹药词库源自战雷拆包开源库（War-Thunder-Datamine）与中文 Wiki。
@@ -105,6 +113,9 @@ def main():
         tmp_out = OUT_EXE.with_suffix(".partial")
         new_index = []
         replaced = 0
+        seen_rels = set()
+        xz_cache_dir = ROOT / "i18n_src" / "airspace_xz_cache"
+        xz_cache_dir.mkdir(parents=True, exist_ok=True)
 
         with open(tmp_out, "wb") as out_f:
             exe_bytes = PLAIN_EXE.read_bytes()
@@ -112,6 +123,7 @@ def main():
             pos = len(exe_bytes)
 
             for rel, o_off, o_len, codec in orig_index:
+                seen_rels.add(rel)
                 patched_file = PATCHED_DIR / rel
                 if patched_file.exists():
                     raw = patched_file.read_bytes()
@@ -124,6 +136,31 @@ def main():
                 new_index.append([rel, pos, len(z), codec])
                 pos += len(z)
 
+            extra_top = PATCHED_DIR / "helipads.js"
+            if extra_top.exists() and "helipads.js" not in seen_rels:
+                z = lzma.compress(extra_top.read_bytes(), format=lzma.FORMAT_XZ, preset=6)
+                out_f.write(z)
+                new_index.append(["helipads.js", pos, len(z), 1])
+                pos += len(z)
+                seen_rels.add("helipads.js")
+
+            extra_files = sorted((PATCHED_DIR / "maps").glob("*.air.*"))
+            added_air = 0
+            for ef in extra_files:
+                rel = f"maps/{ef.name}"
+                if rel in seen_rels:
+                    continue
+                cache_xz = xz_cache_dir / f"{ef.name}.xz"
+                if cache_xz.exists() and cache_xz.stat().st_mtime >= ef.stat().st_mtime:
+                    z = cache_xz.read_bytes()
+                else:
+                    z = lzma.compress(ef.read_bytes(), format=lzma.FORMAT_XZ, preset=6)
+                    cache_xz.write_bytes(z)
+                out_f.write(z)
+                new_index.append([rel, pos, len(z), 1])
+                pos += len(z)
+                added_air += 1
+
             idx_bytes = json.dumps(new_index, separators=(",", ":")).encode("utf-8")
             out_f.write(idx_bytes)
             out_f.write(struct.pack("<QQ", pos, len(idx_bytes)))
@@ -133,7 +170,7 @@ def main():
     OUT_README.write_text(USER_GUIDE.replace("\n", "\r\n"), encoding="utf-8-sig")
 
     sz_mb = OUT_EXE.stat().st_size / (1024 * 1024)
-    print(f"Wrote {OUT_EXE} ({len(new_index)} entries, {replaced} localized JS files, {sz_mb:.1f} MB) in {time.time() - t0:.1f}s")
+    print(f"Wrote {OUT_EXE} ({len(new_index)} entries, {replaced} localized JS, {added_air} outer airspace assets, {sz_mb:.1f} MB) in {time.time() - t0:.1f}s")
 
     t_zip = time.time()
     tmp_zip = OUT_ZIP.with_suffix(".partial.zip")

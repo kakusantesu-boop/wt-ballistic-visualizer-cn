@@ -9,7 +9,8 @@ struct U {
     uv: vec4<f32>,      // colour map origin x, z and 1 / extent x, z
     zn: vec4<f32>,      // zone layer origin x, z and 1 / size
     ov: vec4<f32>,      // sweep overlay origin x, z, 1 / size, on
-    flags: vec4<f32>,   // grid on, ground detail on
+    flags: vec4<f32>,   // grid on, ground detail on, clip_inner on
+    clip_inner: vec4<f32>, // min_x, min_z, max_x, max_z of inner HM2 box
     tiles: array<vec4<f32>, 8>, // detail texture tile sizes in metres (32)
 };
 @group(0) @binding(0) var<uniform> u: U;
@@ -25,10 +26,12 @@ struct U {
 fn fog(col: vec3f, p: vec3f) -> vec3f {
     return mix(col, u.sky.rgb, 0.7 * (1.0 - exp(-distance(p, u.eye.xyz) / 20000.0)));
 }
-// red zones and outside the map edge, painted on every surface
+// red zones and outside the map edge, painted on surfaces inside the zone layer extent
 fn zones(col: vec3f, p: vec3f) -> vec3f {
-    let zn = textureSampleLevel(tZ, sLin, (p.xz - u.zn.xy) * u.zn.z, 0.0);
-    return mix(col, zn.rgb, zn.a);
+    let zuv = (p.xz - u.zn.xy) * u.zn.z;
+    let inside = all(zuv >= vec2f(0.0)) && all(zuv <= vec2f(1.0));
+    let zn = textureSampleLevel(tZ, sLin, zuv, 0.0);
+    return mix(col, zn.rgb, select(0.0, zn.a, inside));
 }
 fn tile(i: i32) -> f32 {
     return u.tiles[i / 4][i % 4];
@@ -61,11 +64,18 @@ struct TOut { @builtin(position) pos: vec4f, @location(0) p: vec3f };
     col = zones(col, p);
     let q = p.xz / 100.0;
     let gd = abs(fract(q - 0.5) - 0.5) / fwidth(q);
-    col = mix(col, vec3f(1.0), u.flags.x * 0.18 * (1.0 - min(min(gd.x, gd.y), 1.0)));
+    let g100 = (1.0 - min(min(gd.x, gd.y), 1.0)) * clamp(1.0 - max(fwidth(q.x), fwidth(q.y)) * 1.6, 0.0, 1.0);
+    let qk = p.xz / 1000.0;
+    let gdk = abs(fract(qk - 0.5) - 0.5) / fwidth(qk);
+    let g1k = (1.0 - min(min(gdk.x, gdk.y), 1.0)) * clamp(1.0 - max(fwidth(qk.x), fwidth(qk.y)) * 1.6, 0.0, 1.0);
+    col = mix(col, vec3f(1.0), u.flags.x * 0.18 * max(g100, g1k * 0.85));
     let ou = (p.xz - u.ov.xy) * u.ov.z;
     let t = textureSampleLevel(tO, sNear, ou, 0.0);
     let inside = u.ov.w > 0.0 && all(ou >= vec2f(0.0)) && all(ou <= vec2f(1.0));
     col = mix(col, t.rgb, select(0.0, t.a, inside));
+    if (u.flags.z > 0.5 && p.x > u.clip_inner.x + 1.0 && p.z > u.clip_inner.y + 1.0 && p.x < u.clip_inner.z - 1.0 && p.z < u.clip_inner.w - 1.0) {
+        discard;
+    }
     return vec4f(fog(col, p), 1.0);
 }
 
@@ -178,5 +188,8 @@ fn waves(p: vec2f) -> f32 { return vn(p * 0.18) + 0.5 * vn(p * 0.47 + 3.1) + 0.2
     let a = max(clamp(0.5 + depth * 0.1, 0.5, 0.92), fr);
     col = zones(col, p);
     if (depth <= 0.0) { discard; }
+    if (u.flags.z > 0.5 && p.x >= u.clip_inner.x && p.z >= u.clip_inner.y && p.x <= u.clip_inner.z && p.z <= u.clip_inner.w) {
+        discard;
+    }
     return vec4f(fog(col, p), a);
 }
