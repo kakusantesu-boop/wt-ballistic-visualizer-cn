@@ -2,7 +2,7 @@
 """婴儿弹道计算机 (Baby Ballistic Computer) — Web Server, Auth, Invite Codes & 30-Slot Cloud Saves.
 
 Zero third-party dependencies (Python 3.10+ standard library only: http.server, sqlite3, hashlib.scrypt).
-Designed to bind strictly to 127.0.0.1 behind a dedicated Cloudflare Tunnel.
+Designed to bind strictly to 127.0.0.1 behind an HTTPS reverse proxy.
 """
 
 from __future__ import annotations
@@ -286,7 +286,7 @@ class BallisticHandler(BaseHTTPRequestHandler):
         print(f"[{now_iso()}] {self.client_ip()} {msg}", flush=True)
 
     def client_ip(self) -> str:
-        # Server binds only to 127.0.0.1 behind cloudflared, so CF-Connecting-IP is trustworthy
+        # Trust forwarded client IP headers when bound strictly to 127.0.0.1 behind a reverse proxy
         cf_ip = self.headers.get("CF-Connecting-IP")
         if cf_ip:
             return cf_ip.strip()
@@ -1029,7 +1029,7 @@ def main() -> None:
     root = Path(__file__).resolve().parent
     ap = argparse.ArgumentParser(description="婴儿弹道计算机 Web 服务")
     ap.add_argument("--host", default=os.environ.get("WTV_WEB_HOST", "127.0.0.1"))
-    ap.add_argument("--port", type=int, default=int(os.environ.get("WTV_WEB_PORT", "18820")))
+    ap.add_argument("--port", type=int, default=int(os.environ.get("WTV_WEB_PORT", "8080")))
     ap.add_argument("--data-dir", default=os.environ.get("WTV_DATA_DIR", str(root / "data")))
     ap.add_argument("--public-dir", default=os.environ.get("WTV_PUBLIC_DIR", str(root / "public")))
     ap.add_argument("--db-path", default=os.environ.get("WTV_DB_PATH", str(root / "var" / "app.db")))
