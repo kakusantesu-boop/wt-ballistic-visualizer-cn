@@ -43,7 +43,8 @@ pub fn map(v: &mut Viewer, b: Bounds<Pixels>, window: &mut Window, cx: &mut App)
     }
     let sp = |v: &Viewer, x: f64, z: f64| p(ox + v.sx(x), oy + v.sy(z));
     let heli = v.is_heli();
-    if heli {
+    let b_outer = v.b.is_some_and(|b| !t.inside(b.x, b.z));
+    if heli || v.view.s < 0.16 || b_outer {
         let bx0 = ox + v.sx(t.ox);
         let bz0 = oy + v.sy(t.z1);
         let bx1 = ox + v.sx(t.x1);
@@ -64,7 +65,7 @@ pub fn map(v: &mut Viewer, b: Bounds<Pixels>, window: &mut Window, cx: &mut App)
             paint::stroke(window, &[p(ox, y), p(ox + w, y)], 1.0, g, None, false);
         }
     }
-    if v.sw.on(Sw::Caps) || heli {
+    if v.sw.on(Sw::Caps) || heli || b_outer {
         let areas = v.areas();
         for a in &areas {
             if a.kind == "battle" || a.kind == "kill" {

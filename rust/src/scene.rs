@@ -461,6 +461,14 @@ pub fn heli_aim_lines(map: &LoadedMap, tc: &Terrain, areas: &[Area], shell: &She
     (out, env.map(|e| e.max_s).filter(|&s| s > 200.0))
 }
 
+pub fn pad_at(map: &LoadedMap, p: Pt) -> Option<&crate::data::Helipad> {
+    map.meta.helipads.iter().find(|pd| {
+        let (hx, hz) = pd.extents();
+        let (lx, lz) = pd.local_xz(p.x, p.z);
+        lx.abs() <= hx + 8.0 && lz.abs() <= hz + 8.0
+    })
+}
+
 /// The aim card text, one (text, kind) per line: kind 0 normal, 1 good, 2 bad.
 pub fn aim_lines(aim: &Aim, p: &Params) -> Vec<(String, u8)> {
     let mut out = vec![];
@@ -541,12 +549,23 @@ pub struct Overlay {
 pub fn run_sweep(kind: SweepKind, map: &LoadedMap, t: &Terrain, shell: &Shell, pt: Pt, p: &Params, perf: Perf, zones: Option<&Zones>) -> Overlay {
     let (n_az, ds, e_step) = perf.values();
     let y_pt = map.stand(pt.x, pt.z);
-    let sp = SweepP { n_az, ds, range: p.range, gun_h: p.gun_h, tgt_h: p.tgt_h, y_pt };
+    let eff_range = if kind == SweepKind::Hit && !map.t.inside(pt.x, pt.z) {
+        let far_d = [(map.t.ox, map.t.oz), (map.t.x1, map.t.oz), (map.t.x1, map.t.z1), (map.t.ox, map.t.z1)]
+            .into_iter()
+            .map(|(cx, cz)| (cx - pt.x).hypot(cz - pt.z))
+            .fold(0.0f64, f64::max);
+        p.range.max(far_d.min(20000.0))
+    } else {
+        p.range
+    };
+    let sp = SweepP { n_az, ds, range: eff_range, gun_h: p.gun_h, tgt_h: p.tgt_h, y_pt };
+    let floor_y = map.t_air.as_ref().map_or(t.lo, |ta| t.lo.min(ta.lo)).min(y_pt) - 250.0;
     let tab = (kind != SweepKind::View).then(|| {
         let y_alt = y_pt + if kind == SweepKind::Reach { p.gun_h } else { p.tgt_h };
-        core::build_table_air(shell, p.p_min, p.p_max, e_step, y_alt, t.lo - 200.0, p.range, ds, p.v_air)
+        core::build_table_air(shell, p.p_min, p.p_max, e_step, y_alt, floor_y, eff_range, ds, p.v_air)
     });
-    let n = tab.as_ref().map_or((p.range / ds).ceil() as usize + 1, |t| t.n);
+    let n = tab.as_ref().map_or((eff_range / ds).ceil() as usize + 1, |t| t.n);
+    let allow_outer = kind != SweepKind::Hit && zones.is_none() && map.t_air.is_some();
     let chunk = 8;
     let parts: Vec<Vec<u8>> = (0..n_az.div_ceil(chunk))
         .into_par_iter()
@@ -554,9 +573,9 @@ pub fn run_sweep(kind: SweepKind, map: &LoadedMap, t: &Terrain, shell: &Shell, p
             let (a0, a1) = (c * chunk, ((c + 1) * chunk).min(n_az));
             let outer = map.t_air.as_deref();
             match (kind, &tab) {
-                (SweepKind::Reach, Some(tab)) => core::sweep_reach_ext(t, outer, tab, pt, &sp, a0, a1),
-                (SweepKind::Hit, Some(tab)) => core::sweep_hit(t, tab, pt, &sp, a0, a1),
-                _ => core::sweep_view_ext(t, outer, pt, &sp, a0, a1),
+                (SweepKind::Reach, Some(tab)) => core::sweep_reach_ext(t, outer, allow_outer, tab, pt, &sp, a0, a1),
+                (SweepKind::Hit, Some(tab)) => core::sweep_hit_ext(t, outer, tab, pt, &sp, a0, a1),
+                _ => core::sweep_view_ext(t, outer, allow_outer, pt, &sp, a0, a1),
             }
         })
         .collect();
@@ -599,10 +618,12 @@ pub fn run_sweep(kind: SweepKind, map: &LoadedMap, t: &Terrain, shell: &Shell, p
                 }
                 let v = all[((az / (2.0 * std::f64::consts::PI) * n_az as f64).round() as usize % n_az) * n + i];
                 let (x, z) = (pt.x + dx, pt.z + dz);
-                if (v == 0 && !view) || !map.t.inside(x, z) || (!view && zones.is_some_and(|zs| !zs.valid(x, z))) {
+                let in_inner = map.t.inside(x, z);
+                let in_domain = in_inner || (allow_outer && map.t_air.as_ref().is_some_and(|ta| ta.inside(x, z)));
+                if (v == 0 && !view) || !in_domain || (!view && zones.is_some_and(|zs| !zs.valid(x, z))) {
                     continue;
                 }
-                if !view && map.tr.src_at(x, z) == 1 {
+                if !view && in_inner && map.tr.src_at(x, z) == 1 {
                     continue; // no tank inside a building
                 }
                 row[ix as usize * 4..ix as usize * 4 + 4].copy_from_slice(&col(v));

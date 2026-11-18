@@ -83,8 +83,9 @@ impl View3D {
             let k = 2.0 * self.cam.dist * (ORBIT_FOV.to_radians() / 2.0).tan() / h.max(1.0) as f64;
             let (s, c) = self.cam.yaw.sin_cos();
             let (ax0, az0, ax1, az1) = map.t_air.as_ref().map_or((t.ox, t.oz, t.x1, t.z1), |ta| (ta.ox, ta.oz, ta.x1, ta.z1));
-            let (min_x, max_x) = if heli { (ax0.min(-25000.0), ax1.max(25000.0)) } else { (ax0, ax1) };
-            let (min_z, max_z) = if heli { (az0.min(-25000.0), az1.max(25000.0)) } else { (az0, az1) };
+            let wide = heli || map.t_air.is_some() || !map.meta.helipads.is_empty();
+            let (min_x, max_x) = if wide { (ax0.min(-25000.0), ax1.max(25000.0)) } else { (ax0, ax1) };
+            let (min_z, max_z) = if wide { (az0.min(-25000.0), az1.max(25000.0)) } else { (az0, az1) };
             self.cam.tx = (self.cam.tx - c * dx * k + s * dy * k).clamp(min_x, max_x);
             self.cam.tz = (self.cam.tz + s * dx * k + c * dy * k).clamp(min_z, max_z);
             self.cam.ty = map.outer_ground(self.cam.tx, self.cam.tz);
@@ -125,8 +126,9 @@ impl View3D {
             Some(ta) => (ta.ox, ta.oz, ta.x1, ta.z1, t.lo.min(ta.lo), t.hi.max(ta.hi)),
             None => (t.ox, t.oz, t.x1, t.z1, t.lo, t.hi),
         };
-        let lo = if heli { [ax0.min(-25000.0), (alo - 80.0).min(-80.0), az0.min(-25000.0)] } else { [t.ox, t.lo - 1.0, t.oz] };
-        let hi = if heli { [ax1.max(25000.0), ahi + 80.0, az1.max(25000.0)] } else { [t.x1, t.hi + 1.0, t.z1] };
+        let wide = heli || map.t_air.is_some() || !map.meta.helipads.is_empty();
+        let lo = if wide { [ax0.min(-25000.0), (alo - 80.0).min(-80.0), az0.min(-25000.0)] } else { [t.ox, t.lo - 1.0, t.oz] };
+        let hi = if wide { [ax1.max(25000.0), ahi + 80.0, az1.max(25000.0)] } else { [t.x1, t.hi + 1.0, t.z1] };
         let (mut t0, mut t1) = (0.0f64, len);
         for i in 0..3 {
             if dir[i].abs() < 1e-12 {
@@ -146,9 +148,10 @@ impl View3D {
             return None;
         }
         let above = |s: f64| a[1] + dir[1] * s - map.stand(a[0] + dir[0] * s, a[2] + dir[2] * s);
-        let step = (t.cell / 2.0).max((t1 - t0) / 1400.0);
+        let fine_step = (t.cell * 0.75).max(1.5);
+        let coarse_step = 8.0f64.max((t1 - t0) / 3000.0);
         let (mut prev, mut s) = (t0, t0);
-        while s <= t1 + step {
+        while s < t1 + coarse_step {
             let tc = s.min(t1);
             if above(tc) <= 0.0 {
                 let (mut l, mut h) = (prev, tc);
@@ -158,8 +161,12 @@ impl View3D {
                 }
                 return Some(Pt { x: a[0] + dir[0] * h, z: a[2] + dir[2] * h });
             }
+            if tc >= t1 {
+                break;
+            }
             prev = tc;
-            s += step;
+            let (rx, rz) = (a[0] + dir[0] * tc, a[2] + dir[2] * tc);
+            s = tc + if t.inside(rx, rz) { fine_step } else { coarse_step };
         }
         None
     }
@@ -1042,9 +1049,14 @@ impl View3D {
         if v.sw.on(Sw::Tanks) {
             let model_a = v.index.tanks.get(v.tank).and_then(|t| t.model.clone()).filter(|_| !v.aim_ready() && !v.is_heli());
             let mut inst: Vec<f32> = vec![];
-            for (model, p, q, heading, col) in [(model_a, v.a, v.b, v.heading, [0.78, 0.6, 0.3]), (v.b.map(|_| TARGET_MODEL.to_string()), v.b, v.a, None, [0.36, 0.58, 0.8])] {
+            for (is_b, model, p, q, heading, col) in [(false, model_a, v.a, v.b, v.heading, [0.78, 0.6, 0.3]), (true, v.b.map(|_| TARGET_MODEL.to_string()), v.b, v.a, None, [0.36, 0.58, 0.8])] {
                 let (Some(model), Some(p)) = (model, p) else { continue };
-                if !map.tr.inside(p.x, p.z) {
+                let in_bounds = if is_b {
+                    map.tr.inside(p.x, p.z) || (p.x.abs() <= 30000.0 && p.z.abs() <= 30000.0)
+                } else {
+                    map.tr.inside(p.x, p.z)
+                };
+                if !in_bounds {
                     continue;
                 }
                 let Some(mesh) = gpu.tanks.get(&model) else { continue };
@@ -1414,7 +1426,7 @@ fn draw_sight(v: &Viewer, aim: &scene::Aim, ox: f32, oy: f32, window: &mut Windo
         }
     }
     if let Some(sh) = v.shell() {
-        let (max_r, step_r) = if heli { (8000.0, 500.0) } else { (4000.0, 200.0) };
+        let (max_r, step_r) = if heli { (8000.0, 500.0) } else { (4000.0f64.max((aim.d / 1000.0).ceil() * 1000.0).min(12000.0), 200.0) };
         let use_exact = sh.rocket.is_some() || sh.v0 < 350.0 || v_air > 0.0;
         let tr = (!use_exact).then(|| crate::core::simulate(sh, 0.0, aim.y_a, max_r + 1.0, crate::core::SimOpt { v_air, ..Default::default() }));
         let fan = use_exact.then(|| crate::core::build_traj_fan(sh, aim.y_a, if heli { -35.0 } else { -5.0 }, 45.0, v_air, max_r + 50.0, aim.y_a - v.heli_agl - 1000.0));

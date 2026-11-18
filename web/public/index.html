@@ -425,6 +425,21 @@
       </div>
     </div>
 
+    <!-- Ground Vehicle Counter-Helipad Quick Target Bar -->
+    <div id="groundHeliBox" class="heli-box" hidden>
+      <div class="heli-box-hd">
+        <span>反制敌方停机坪（一键设目标 B）</span>
+        <button type="button" class="btn-xs" id="btnGndAirspace" title="缩放视野以同时显示陆战交战区与全部四个直升机停机坪">全空域总览</button>
+      </div>
+      <div class="pad-grid" id="groundPadGrid" style="margin-bottom:3px">
+        <button type="button" class="pad-btn t1" data-bpad="t1_near"><span>1队近 H1</span><small id="bpadAlt_t1_near">—</small></button>
+        <button type="button" class="pad-btn t1" data-bpad="t1_far"><span>1队远 H2</span><small id="bpadAlt_t1_far">—</small></button>
+        <button type="button" class="pad-btn t2" data-bpad="t2_near"><span>2队近 H1</span><small id="bpadAlt_t2_near">—</small></button>
+        <button type="button" class="pad-btn t2" data-bpad="t2_far"><span>2队远 H2</span><small id="bpadAlt_t2_far">—</small></button>
+      </div>
+      <div class="note" style="font-size:11px">点选直接将目标 B 设至停机坪（亦可拉远地图右键/长按点选 16 个 [H] 机位）</div>
+    </div>
+
     <div class="row3">
       <div><label for="pMin">俯角下限 °</label><input type="number" id="pMin" step="0.5" value="-10"></div>
       <div><label for="pMax">仰角上限 °</label><input type="number" id="pMax" step="0.5" value="20"></div>
@@ -525,7 +540,7 @@
   <section class="card">
     <h2><span class="h2-left">操作说明</span></h2>
     <p class="help">
-      <b>电脑键鼠</b><span>左键放 A（武直支持全空域框外放点），右键放 B，滚轮缩放</span>
+      <b>电脑键鼠</b><span>左键放 A（武直支持全空域放点），右键放 B（陆战与武直均支持设在直升机停机坪及外圈地形），滚轮缩放</span>
       <b>武直微调</b><span>点选停机坪 H1/H2 一键就位，W A S D 平移，Q / E 升降悬停高度</span>
       <b>触屏点选</b><span>底部切换「放A / 放B / 漫游」，任意位置长按直接放 B</span>
       <b>触屏手势</b><span>单指拖动平移/环绕，双指捏合缩放与双指平移</span>
@@ -1300,7 +1315,8 @@ var WT = (function () {
 
   function sweepReach(T, Tr, tab, A, p, a0, a1) {
     const { Y, n, ne, ds, apex, last } = tab;
-    const yA = (p.yPt != null ? p.yPt : outerGroundAt(T.meta, Tr, A.x, A.z)) + p.gunH;
+    const allowOuter = !!p.allowOuter;
+    const yA = (p.yPt != null ? p.yPt : surfHeight(Tr, A.x, A.z)) + p.gunH;
     const out = new Uint8Array((a1 - a0) * n), prof = new Float32Array(n), stand = new Float32Array(n), inBox = new Uint8Array(n);
     for (let a = a0; a < a1; a++) {
       const [dx, dz] = rayDir(a, p.nAz);
@@ -1308,9 +1324,13 @@ var WT = (function () {
       for (let i = 0; i < n; i++) {
         const x = A.x + dx * i * ds, z = A.z + dz * i * ds;
         if (!T.inside(x, z)) {
-          if (entered) break;
+          if (!allowOuter && entered) break;
+          const inAir = !!(allowOuter && T.tAir && T.tAir.inside(x, z));
+          if (allowOuter && !inAir && entered) break;
           const og = surfHeight(T, x, z) - yA;
-          prof[i] = og; stand[i] = og; inBox[i] = 0; nMax = i + 1;
+          prof[i] = og; stand[i] = og; nMax = i + 1;
+          if (inAir) { entered = true; inBox[i] = 1; if (og > top) top = og; }
+          else inBox[i] = 0;
           continue;
         }
         entered = true;
@@ -1358,18 +1378,27 @@ var WT = (function () {
 
   function sweepHit(T, Tr, tab, B, p, a0, a1) {
     const { Y, n, ne, ds } = tab;
-    const yB = (p.yPt != null ? p.yPt : outerGroundAt(T.meta, Tr, B.x, B.z)) + p.tgtH;
-    const out = new Uint8Array((a1 - a0) * n), g = new Float32Array(n), st = new Float32Array(n), sols = [];
+    const yB = (p.yPt != null ? p.yPt : surfHeight(Tr, B.x, B.z)) + p.tgtH;
+    const out = new Uint8Array((a1 - a0) * n), g = new Float32Array(n), st = new Float32Array(n), inBox = new Uint8Array(n), sols = [];
     for (let a = a0; a < a1; a++) {
       const [dx, dz] = rayDir(a, p.nAz);
-      let nMax = n;
+      let nMax = 0, entered = false;
       for (let i = 0; i < n; i++) {
         const x = B.x + dx * i * ds, z = B.z + dz * i * ds;
-        if (!T.inside(x, z)) { nMax = i; break; }
+        if (!T.inside(x, z)) {
+          if (entered) break;
+          const og = surfHeight(T, x, z);
+          g[i] = og; st[i] = og; inBox[i] = 0; nMax = i + 1;
+          continue;
+        }
+        entered = true;
+        inBox[i] = 1; nMax = i + 1;
         g[i] = T.heightAt(x, z); st[i] = Tr.heightAt(x, z);
       }
+      if (!entered) continue;
       const row0 = (a - a0) * n;
       for (let j = 1; j < nMax; j++) {
+        if (!inBox[j]) continue;
         const yP = st[j] + p.gunH;
         solutionsAt(Y, n, ne, j, yB - yP, sols);
         for (let si = 0; si < sols.length; si++) {
@@ -1387,7 +1416,7 @@ var WT = (function () {
   }
 
   function sweepView(T, P, p, a0, a1) {
-    const n = Math.ceil(p.range / p.ds) + 1, yE = p.yPt + p.gunH;
+    const n = Math.ceil(p.range / p.ds) + 1, yE = p.yPt + p.gunH, allowOuter = !!p.allowOuter;
     const out = new Uint8Array((a1 - a0) * n);
     for (let a = a0; a < a1; a++) {
       const [dx, dz] = rayDir(a, p.nAz), row0 = (a - a0) * n;
@@ -1395,17 +1424,35 @@ var WT = (function () {
       for (let i = 1; i < n; i++) {
         const d = i * p.ds, x = P.x + dx * d, z = P.z + dz * d;
         if (!T.inside(x, z)) {
-          if (entered) break;
+          if (!allowOuter && entered) break;
+          const inAir = !!(allowOuter && T.tAir && T.tAir.inside(x, z));
+          if (allowOuter && !inAir && entered) break;
           const og = surfHeight(T, x, z);
-          const sl0 = (og - yE) / d;
-          if (sl0 > maxS) maxS = sl0;
+          if (inAir) {
+            entered = true;
+            const vis = (og + p.tgtH - yE) / d >= maxS;
+            if (vis) out[row0 + i] = 1;
+            else if (prevVis && hor > 0) {
+              const hx = P.x + dx * hor * p.ds, hz = P.z + dz * hor * p.ds;
+              out[row0 + hor] = 2 + (T.inside(hx, hz) ? T.srcAt(hx, hz) : 0);
+            }
+            prevVis = vis;
+            const sl = (og - yE) / d;
+            if (sl > maxS) { maxS = sl; hor = i; }
+          } else {
+            const sl0 = (og - yE) / d;
+            if (sl0 > maxS) maxS = sl0;
+          }
           continue;
         }
         entered = true;
         const s = T.heightAt(x, z), top = T.srcAt(x, z) ? s : s + p.tgtH;
         const vis = (top - yE) / d >= maxS;
         if (vis) out[row0 + i] = 1;
-        else if (prevVis && hor > 0) out[row0 + hor] = 2 + T.srcAt(P.x + dx * hor * p.ds, P.z + dz * hor * p.ds);
+        else if (prevVis && hor > 0) {
+          const hx = P.x + dx * hor * p.ds, hz = P.z + dz * hor * p.ds;
+          out[row0 + hor] = 2 + (T.inside(hx, hz) ? T.srcAt(hx, hz) : 0);
+        }
         prevVis = vis;
         const sl = (s - yE) / d;
         if (sl > maxS) { maxS = sl; hor = i; }
@@ -1442,6 +1489,19 @@ var WT = (function () {
     return h;
   }
 
+  function padAt(meta, x, z) {
+    const pads = meta && meta.helipads;
+    if (!pads || !pads.length) return null;
+    for (let i = 0; i < pads.length; i++) {
+      const pd = pads[i], [hx, hz] = padExtents(pd);
+      if (Math.abs(x - pd.x) > hx + hz + 20 || Math.abs(z - pd.z) > hx + hz + 20) continue;
+      const [ux, uz] = padBasis(pd), dx = x - pd.x, dz = z - pd.z;
+      const lx = dx * ux + dz * uz, lz = -dx * uz + dz * ux;
+      if (Math.abs(lx) <= hx + 8 && Math.abs(lz) <= hz + 8) return pd;
+    }
+    return null;
+  }
+
   function surfHeight(T, x, z) {
     const base = T.inside(x, z) ? T.heightAt(x, z) : (T.tAir ? T.tAir.heightAt(x, z) : outerGroundAt(T.meta, T, x, z));
     return withPads(T.meta, x, z, base);
@@ -1463,7 +1523,7 @@ var WT = (function () {
     return null;
   }
 
-  return { G, DEG, rho, soundSpeed, rocketCd0, dragK, simulate, simAtDist, atDist, solveExact, buildTrajFan, maxRocketEnvelope, buildTable, unpredict, outerGroundAt, padBasis, padExtents, withPads, surfHeight, makeTerrain, rayDir, sweepReach, sweepHit, sweepView, losBlocked, pathBlocked };
+  return { G, DEG, rho, soundSpeed, rocketCd0, dragK, simulate, simAtDist, atDist, solveExact, buildTrajFan, maxRocketEnvelope, buildTable, unpredict, outerGroundAt, padBasis, padExtents, withPads, padAt, surfHeight, makeTerrain, rayDir, sweepReach, sweepHit, sweepView, losBlocked, pathBlocked };
 })();
 if (typeof module !== "undefined") module.exports = WT;
 </script>
@@ -1485,7 +1545,8 @@ onmessage = e => {
     return;
   }
   const yAlt = p.yPt + (m.kind === "reach" ? p.gunH : p.tgtH);
-  const tab = WT.buildTable(m.shell, p.pMin, p.pMax, p.eStep, yAlt, T.lo - 200, p.range, p.ds, { vAir: p.vAir || 0 });
+  const floorY = Math.min(T.lo, T.tAir ? T.tAir.lo : T.lo, yAlt) - 250;
+  const tab = WT.buildTable(m.shell, p.pMin, p.pMax, p.eStep, yAlt, floorY, p.range, p.ds, { vAir: p.vAir || 0 });
   const out = (m.kind === "reach" ? WT.sweepReach : WT.sweepHit)(T, Tr, tab, m.pt, p, m.a0, m.a1);
   postMessage({ a0: m.a0, a1: m.a1, n: tab.n, out }, [out.buffer]);
 };
@@ -2286,9 +2347,35 @@ function syncHeliPadButtons() {
   });
 }
 
+function syncGroundPadButtons() {
+  const pads = (MAP && MAP.meta && MAP.meta.helipads) || [];
+  const byId = Object.fromEntries(pads.map(p => [p.id, p]));
+  const activePad = B && MAP ? WT.padAt(MAP.meta, B.x, B.z) : null;
+  $("groundPadGrid").querySelectorAll("button[data-bpad]").forEach(btn => {
+    const pid = btn.dataset.bpad, pd = byId[pid];
+    btn.disabled = !pd;
+    btn.classList.toggle("act", !!(activePad && activePad.id === pid));
+    const sm = $("bpadAlt_" + pid);
+    if (sm) sm.textContent = pd ? `${Math.round(pd.y)}m` : "—";
+  });
+}
+
+function ensureRangeForTarget(pt) {
+  if (!MAP || !pt) return;
+  const ox = A ? A.x : 0.5 * (MAP.T.ox + MAP.T.x1);
+  const oz = A ? A.z : 0.5 * (MAP.T.oz + MAP.T.z1);
+  const dist = Math.hypot(pt.x - ox, pt.z - oz);
+  const needed = Math.min(20000, Math.ceil((dist + 800) / 500) * 500);
+  if (num("range", 2500) < needed) {
+    $("range").value = Math.max(2500, needed);
+  }
+}
+
 function syncHeliAltUI() {
   const hMode = isHeli();
+  const hasPads = !!(MAP && MAP.meta && MAP.meta.helipads && MAP.meta.helipads.length);
   $("heliBox").hidden = !hMode;
+  $("groundHeliBox").hidden = hMode || !hasPads;
   $("gunHWrap").hidden = hMode;
   $("out").hidden = hMode;
   $("heliOutWrap").hidden = !hMode;
@@ -2297,7 +2384,10 @@ function syncHeliAltUI() {
   $("padAltUp").hidden = !hMode;
   $("padSpacerL").hidden = hMode;
   $("padSpacerR").hidden = hMode;
-  if (!hMode) return;
+  if (!hMode) {
+    syncGroundPadButtons();
+    return;
+  }
 
   const ccipEl = $("heliCcipTag");
   ccipEl.textContent = TANK && TANK.ccip ? "游戏内带 CCIP" : "纯手拉标尺机型";
@@ -2309,6 +2399,21 @@ function syncHeliAltUI() {
   $("heliAsl").value = Math.round(gBase + heliAgl);
   $("heliSpd").value = Math.round(heliSpdKmh);
   syncHeliPadButtons();
+}
+
+function targetHelipadB(padId) {
+  if (!MAP || !MAP.meta.helipads) return;
+  const pd = MAP.meta.helipads.find(x => x.id === padId);
+  if (!pd) return;
+  B = { x: pd.x, z: pd.z };
+  if (A && heading == null) heading = Math.atan2(B.x - A.x, B.z - A.z);
+  ensureRangeForTarget(B);
+  syncGroundPadButtons();
+  fitAirspace(pd);
+  updateAim();
+  remember();
+  if (isMobileScreen()) setSidebarOpen(false);
+  showToast(`已设目标 B：${pd.name}（停机坪台面 ${pd.y.toFixed(1)}m）${A ? "" : "，请在陆战区左键放置开火点 A"}`);
 }
 
 function snapToHelipad(padId) {
@@ -2333,7 +2438,12 @@ $("heliPadGrid").addEventListener("click", e => {
   const b = e.target.closest("button[data-pad]");
   if (b) snapToHelipad(b.dataset.pad);
 });
+$("groundPadGrid").addEventListener("click", e => {
+  const b = e.target.closest("button[data-bpad]");
+  if (b) targetHelipadB(b.dataset.bpad);
+});
 $("btnFitAirspace").onclick = () => { fitAirspace(); if (isMobileScreen()) setSidebarOpen(false); };
+$("btnGndAirspace").onclick = () => { fitAirspace(); if (isMobileScreen()) setSidebarOpen(false); };
 $("btnFitBattle").onclick = () => { centerMap(true); if (isMobileScreen()) setSidebarOpen(false); };
 
 $("heliAgl").addEventListener("input", () => {
@@ -2649,7 +2759,18 @@ function pickTank(t, shellKey) {
   $("shellSel").innerHTML = opts.join("");
   loadTank3D(t.model || "leopard_2a4");
   if (shellKey && [...$("shellSel").options].some(o => o.value === shellKey)) $("shellSel").value = shellKey;
-  if (isHeli() && !prevHeli) $("range").value = Math.max(8000, num("range", 2500));
+  if (isHeli() && !prevHeli) {
+    $("range").value = Math.max(8000, num("range", 2500));
+  } else if (!isHeli() && prevHeli && MAP) {
+    if (A && !MAP.T.inside(A.x, A.z)) A = null;
+    if (B && !MAP.T.inside(B.x, B.z)) {
+      ensureRangeForTarget(B);
+      fitAirspace(WT.padAt(MAP.meta, B.x, B.z));
+    } else {
+      $("range").value = 2500;
+      centerMap(true);
+    }
+  }
   syncHeliAltUI();
   pickShell();
 }
@@ -2696,13 +2817,13 @@ window.WTV_TANK = async (model, spec) => {
   } catch {}
 };
 
-// Hull pose on surface (6.5m x 3.4m footprint, matches Rust scene.rs)
+// Hull pose on surface (6.5m x 3.4m footprint, matches Rust scene.rs; uses groundAt so outer helipads & LandMesh work too)
 function hullPose(S, x, z, yawRad) {
   const fx = Math.sin(yawRad), fz = Math.cos(yawRad);
   const rx = fz, rz = -fx;
-  const hF = S.heightAt(x + fx * 3.25, z + fz * 3.25), hB = S.heightAt(x - fx * 3.25, z - fz * 3.25);
-  const hR = S.heightAt(x + rx * 1.7, z + rz * 1.7), hL = S.heightAt(x - rx * 1.7, z - rz * 1.7);
-  const y = Math.max(S.heightAt(x, z), 0.5 * (hF + hB), 0.5 * (hR + hL));
+  const hF = groundAt(S, x + fx * 3.25, z + fz * 3.25), hB = groundAt(S, x - fx * 3.25, z - fz * 3.25);
+  const hR = groundAt(S, x + rx * 1.7, z + rz * 1.7), hL = groundAt(S, x - rx * 1.7, z - rz * 1.7);
+  const y = Math.max(groundAt(S, x, z), 0.5 * (hF + hB), 0.5 * (hR + hL));
   const nrm = v => { const l = Math.hypot(...v) || 1; return v.map(c => c / l); };
   const X = nrm([fx * 6.5, hF - hB, fz * 6.5]);
   let Z = nrm([rx * 3.4, hR - hL, rz * 3.4]);
@@ -3008,8 +3129,9 @@ function draw() {
     const o = overlay;
     ctx.drawImage(o.cv, sx(o.x0), sy(o.z0 + o.size), o.size * view.s, o.size * view.s);
   }
-  // Subtle frame around high-res ground terrain mesh when zoomed out to airspace
-  if (view.s < 0.16 || isHeli()) {
+  // Subtle frame around high-res ground terrain mesh when zoomed out to airspace or targeting outer helipads
+  const bOuter = !!(B && !T.inside(B.x, B.z));
+  if (view.s < 0.16 || isHeli() || bOuter) {
     ctx.strokeStyle = "rgba(143,212,255,0.24)";
     ctx.lineWidth = 1;
     ctx.strokeRect(sx(T.ox), sy(T.z1), (T.x1 - T.ox) * view.s, (T.z1 - T.oz) * view.s);
@@ -3046,7 +3168,7 @@ function draw() {
   }
   // Helipads (H1 near / H2 far for Team 1 & Team 2) + zoomed-in 1m airfield apron, runway & 16 [H] spawn pads
   const pads = (MAP.meta && MAP.meta.helipads) || [];
-  if (pads.length && ($("showCaps").checked || isHeli())) {
+  if (pads.length && ($("showCaps").checked || isHeli() || bOuter)) {
     ctx.font = "bold 11px " + getComputedStyle(document.body).fontFamily;
     for (const pd of pads) {
       const px = sx(pd.x), py = sy(pd.z);
@@ -3198,14 +3320,14 @@ function draw() {
 function canPlaceAt(p, isTargetB) {
   if (!MAP) return false;
   if (MAP.T.inside(p.x, p.z)) return true;
-  if (!isHeli()) return false;
-  // In Helicopter Mode, allow placing A (and B) anywhere within 30 km airspace around map
+  // Ground vehicles keep A inside the tank map, while Target B (and Heli A/B) can be placed anywhere in the 30 km outer airspace & helipads
+  if (!isHeli() && !isTargetB) return false;
   const cx = 0.5 * (MAP.T.ox + MAP.T.x1), cz = 0.5 * (MAP.T.oz + MAP.T.z1);
   return Math.abs(p.x - cx) <= 30000 && Math.abs(p.z - cz) <= 30000;
 }
 
-function maybeSnapHelipad(p, pxScreen, pyScreen) {
-  if (!isHeli() || !MAP || !MAP.meta.helipads) return p;
+function maybeSnapHelipad(p, pxScreen, pyScreen, forTargetB) {
+  if ((!isHeli() && !forTargetB) || !MAP || !MAP.meta.helipads) return p;
   for (const pd of MAP.meta.helipads) {
     if (view.s >= 0.22 && HELIPAD_LIB && HELIPAD_LIB.prefabs) {
       const pf = HELIPAD_LIB.prefabs[String(pd.uc || "").toLowerCase()];
@@ -3240,9 +3362,11 @@ function placePoint(p, btn, fromTouch) {
   } else if (effMode === "B") {
     B = { x: p.x, z: p.z };
     if (A && heading == null) heading = Math.atan2(B.x - A.x, B.z - A.z);
+    if (!isHeli() && MAP && !MAP.T.inside(B.x, B.z)) ensureRangeForTarget(B);
   } else if (btn === 2) {
     B = { x: p.x, z: p.z };
     if (A && heading == null) heading = Math.atan2(B.x - A.x, B.z - A.z);
+    if (!isHeli() && MAP && !MAP.T.inside(B.x, B.z)) ensureRangeForTarget(B);
   } else if (btn === 0) {
     A = { x: p.x, z: p.z };
     if (B) heading = Math.atan2(B.x - A.x, B.z - A.z); else if (p.pad) heading = (p.pad.yaw || 0) * WT.DEG; else if (heading == null) heading = 0;
@@ -3276,7 +3400,8 @@ addEventListener("mouseup", e => {
   if (drag2d && !drag2d.moved && MAP && e.target === mapCv) {
     const r = mapCv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
     let p = { x: wx(px), z: wz(py) };
-    if (drag2d.btn === 0) p = maybeSnapHelipad(p, px, py);
+    const placingA = touchPlaceMode === "A" || (touchPlaceMode === "auto" && drag2d.btn === 0);
+    p = maybeSnapHelipad(p, px, py, !placingA);
     placePoint(p, drag2d.btn, false);
   }
   drag2d = null;
@@ -3304,12 +3429,12 @@ mapCv.addEventListener("wheel", e => {
       tState = { kind: 1, x0: px, y0: py, cx0: view.cx, cz0: view.cz, moved: false, longFired: false };
       lpTimer = setTimeout(() => {
         if (tState && tState.kind === 1 && !tState.moved && MAP) {
-          const p = { x: wx(px), z: wz(py) };
+          const p = maybeSnapHelipad({ x: wx(px), z: wz(py) }, px, py, true);
           if (canPlaceAt(p, true)) {
             tState.longFired = true;
             if (navigator.vibrate) navigator.vibrate(18);
             placePoint(p, 2, true);
-            showToast("已长按放置目标 B");
+            showToast(p.pad ? `已设目标 B：${p.pad.short}` : "已长按放置目标 B");
           }
         }
       }, 430);
@@ -3369,7 +3494,7 @@ mapCv.addEventListener("wheel", e => {
         } else {
           lastTapTime = now; lastTapX = tState.x0; lastTapY = tState.y0;
           let p = { x: wx(tState.x0), z: wz(tState.y0) };
-          if (touchPlaceMode === "A" || touchPlaceMode === "auto") p = maybeSnapHelipad(p, tState.x0, tState.y0);
+          p = maybeSnapHelipad(p, tState.x0, tState.y0, touchPlaceMode === "B");
           placePoint(p, 0, true);
         }
       }
@@ -3674,7 +3799,14 @@ function updateAim() {
       const gA0 = A ? groundAt(S, A.x, A.z) : MAP.T.lo;
       renderHeliFiringTables(p, gA0, gA0 + p.gunH, step);
     } else {
-      $("out").textContent = "左键（或触屏点选）放置开火点 A，右键（或长按/切放B）放置目标点 B。";
+      const bPad = B ? WT.padAt(MAP.meta, B.x, B.z) : null;
+      if (bPad) {
+        $("out").innerHTML = `<span class="ok">已设目标 B：${escHtml(bPad.name)}（停机坪台面 ${bPad.y.toFixed(1)} m）</span>\n请在中央陆战地图上左键（或触屏点选）放置开火点 A，即可解算反制诸元。`;
+      } else if (B) {
+        $("out").textContent = "已放置目标点 B，请在陆战地图上左键（或触屏点选）放置开火点 A。";
+      } else {
+        $("out").textContent = "左键（或触屏点选）放置开火点 A，右键（或一键点选停机坪 / 长按 / 切放B）放置目标点 B。";
+      }
     }
     $("mobAimCard").hidden = true;
     draw(); drawProfile(); return;
@@ -3701,7 +3833,9 @@ function updateAim() {
   if (hMode) {
     renderHeliFiringTables(p, gA, yA, step);
   } else {
-    let s = `水平距离  ${d.toFixed(1)} m（斜距 ${Math.hypot(d, dy).toFixed(1)} m）\n` +
+    const bPad = WT.padAt(MAP.meta, B.x, B.z);
+    let s = (bPad ? `目标点位  ${bPad.name}（停机坪台面 ${bPad.y.toFixed(1)} m）\n` : "") +
+      `水平距离  ${d.toFixed(1)} m（斜距 ${Math.hypot(d, dy).toFixed(1)} m）\n` +
       `海拔高程  A ${gA.toFixed(1)} m   B ${gB.toFixed(1)} m   高差 ${dy >= 0 ? "+" : ""}${dy.toFixed(1)} m\n` +
       `方位角度  ${az.toFixed(1)}°   高低视线角 ${(losAng / WT.DEG).toFixed(2)}°\n` +
       `观察视线  ${los == null ? "通视无阻" : "在 " + los.toFixed(0) + " m 处受阻" + what(Ts, los)}\n`;
@@ -3718,6 +3852,7 @@ function updateAim() {
         `  飞行时间  ${q.t.toFixed(2)} s，落点存速 ${q.v.toFixed(0)} m/s\n`;
     });
     $("out").innerHTML = escHtml(s)
+      .replace(/^目标点位[^\n]*/, "<span class=ok>$&</span>")
       .replace(/通视无阻|可命中目标/g, "<span class=ok>$&</span>")
       .replace(/在 \d+ m 处受阻[^\n]*/g, "<span class=bad>$&</span>");
   }
@@ -3809,7 +3944,18 @@ function runSweep(kind) {
   const pt = kind === "hit" ? B : A;
   if (!pt) { setStatus(kind === "hit" ? "请先右键放置目标点 B" : "请先左键放置开火点 A", true); return; }
   if (job) job.workers.forEach(w => w.terminate());
-  const p = Object.assign(params(), PERF[$("perf").value], { yPt: groundAt(MAP.Tr, pt.x, pt.z) });
+  const allowOuter = kind !== "hit" && !$("clip").checked && !!MAP.Tair;
+  const p = Object.assign(params(), PERF[$("perf").value], { yPt: groundAt(MAP.Tr, pt.x, pt.z), allowOuter });
+  if (kind === "hit" && !MAP.T.inside(pt.x, pt.z)) {
+    const T = MAP.T;
+    const farD = Math.max(
+      Math.hypot(T.ox - pt.x, T.oz - pt.z),
+      Math.hypot(T.x1 - pt.x, T.oz - pt.z),
+      Math.hypot(T.x1 - pt.x, T.z1 - pt.z),
+      Math.hypot(T.ox - pt.x, T.z1 - pt.z)
+    );
+    p.range = Math.max(p.range, Math.min(20000, Math.ceil(farD)));
+  }
   const grids = !MAP.roof ? [] : $(kind === "view" ? "vegSight" : "vegShots").checked ? [MAP.roof, MAP.veg] : [MAP.roof];
   const nW = Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 4) - 1));
   const chunk = Math.ceil(p.nAz / nW), parts = [], t0 = performance.now();
@@ -3833,7 +3979,7 @@ function finishSweep(kind, pt, p, parts, ms) {
   const R = (n - 1) * p.ds, N = Math.min(2048, Math.ceil(2 * R / p.ds)), px = 2 * R / N;
   const cv = document.createElement("canvas"); cv.width = cv.height = N;
   const ctx = cv.getContext("2d"), img = ctx.createImageData(N, N), D = img.data;
-  const isView = kind === "view", ok = isView ? () => true : validPos(kind === "hit"), T = MAP.T;
+  const isView = kind === "view", ok = isView ? () => true : validPos(kind === "hit"), T = MAP.T, allowOuter = !!p.allowOuter;
   const COL = isView
     ? { 0: [0, 0, 0, 110], 1: [88, 196, 114, 110], 2: [226, 60, 50, 235], 3: [240, 150, 40, 235], 4: [250, 230, 60, 235] }
     : { 1: [88, 196, 114, 120], 2: [233, 138, 60, 120], 3: [79, 179, 232, 120] };
@@ -3844,8 +3990,9 @@ function finishSweep(kind, pt, p, parts, ms) {
     let az = Math.atan2(dx, dz); if (az < 0) az += 2 * Math.PI;
     const v = all[(Math.round(az / (2 * Math.PI) * p.nAz) % p.nAz) * n + i];
     const x = pt.x + dx, z = pt.z + dz;
-    if ((!v && !isView) || !T.inside(x, z) || !ok(x, z)) continue;
-    if (!isView && MAP.Tr.srcAt(x, z) === 1) continue;
+    const inInner = T.inside(x, z), inDom = inInner || (allowOuter && MAP.Tair && MAP.Tair.inside(x, z));
+    if ((!v && !isView) || !inDom || !ok(x, z)) continue;
+    if (!isView && inInner && MAP.Tr.srcAt(x, z) === 1) continue;
     const c = kind === "reach" ? COL[1] : COL[v], o = (iy * N + ix) * 4;
     D[o] = c[0]; D[o + 1] = c[1]; D[o + 2] = c[2]; D[o + 3] = c[3]; if (v) cells++;
   }
@@ -4524,7 +4671,7 @@ const V3 = (() => {
       const yawB = A && B ? Math.atan2(A.x - B.x, A.z - B.z) : Math.PI;
       const list = [
         [!isHeli() && !aimReady() && A && MAP.Tr.inside(A.x, A.z) && TANK && (TANK.model || "leopard_2a4"), A, yawA, [0.78, 0.6, 0.3]],
-        [B && MAP.Tr.inside(B.x, B.z) && TARGET_MODEL, B, yawB, [0.36, 0.58, 0.8]],
+        [B && TARGET_MODEL, B, yawB, [0.36, 0.58, 0.8]],
       ];
       for (const [model, p, yaw, col] of list) {
         const g = model && gpuTank(model);
@@ -4631,7 +4778,7 @@ const V3 = (() => {
 
     // Dynamic range ladder for the selected shell/rocket
     if (SHELL) {
-      const maxR = heli ? 8000 : 4000, stepR = heli ? 500 : 200;
+      const maxR = heli ? 8000 : Math.min(12000, Math.max(4000, Math.ceil((aim ? aim.d : 4000) / 1000) * 1000)), stepR = heli ? 500 : 200;
       const useExact = !!SHELL.rocket || SHELL.v0 < 350 || vAir > 0;
       const tr0 = useExact ? null : WT.simulate(SHELL, 0, aim.yA, maxR + 1, { vAir });
       const fan0 = useExact ? WT.buildTrajFan(SHELL, aim.yA, heli ? -35 : -5, 45, vAir, maxR + 50, aim.yA - heliAgl - 1000) : null;
@@ -4691,7 +4838,7 @@ const V3 = (() => {
     };
     const ready = aimReady();
     if (mode === "sight" && ready) { drawSight(ctx, W, H); return; }
-    if (!ready && MAP.meta && MAP.meta.helipads && ($("showCaps").checked || heli)) {
+    if (!ready && MAP.meta && MAP.meta.helipads && ($("showCaps").checked || heli || (B && !MAP.T.inside(B.x, B.z)))) {
       for (const pd of MAP.meta.helipads) dot(project(pd.x, pd.y + 18, pd.z), pd.team === 1 ? "#4fb3e8" : "#f09648", pd.short, 4.5);
     }
     if (!ready) {
@@ -4792,11 +4939,12 @@ const V3 = (() => {
     const un = z => { const v = xform(INV, nx, ny, z); return [v[0] / v[3], v[1] / v[3], v[2] / v[3]]; };
     const a = un(-1), b = un(1), len = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]), dir = [0, 1, 2].map(i => (b[i] - a[i]) / len);
     const Ta = MAP.Tair;
+    const wide = heli || !!Ta || !!(MAP.meta.helipads && MAP.meta.helipads.length);
     const alo = Ta ? Math.min(T.lo, Ta.lo) : T.lo, ahi = Ta ? Math.max(T.hi, Ta.hi) : T.hi;
     const ax0 = Ta ? Math.min(-25000, Ta.ox) : -25000, ax1 = Ta ? Math.max(25000, Ta.x1) : 25000;
     const az0 = Ta ? Math.min(-25000, Ta.oz) : -25000, az1 = Ta ? Math.max(25000, Ta.z1) : 25000;
-    const lo = heli ? [ax0, Math.min(alo - 80, -80), az0] : [T.ox, T.lo - 1, T.oz];
-    const hi = heli ? [ax1, ahi + 80, az1] : [T.x1, T.hi + 1, T.z1];
+    const lo = wide ? [ax0, Math.min(alo - 80, -80), az0] : [T.ox, T.lo - 1, T.oz];
+    const hi = wide ? [ax1, ahi + 80, az1] : [T.x1, T.hi + 1, T.z1];
     let t0 = 0, t1 = len;
     for (let i = 0; i < 3; i++) {
       if (Math.abs(dir[i]) < 1e-12) { if (a[i] < lo[i] || a[i] > hi[i]) return null; continue; }
@@ -4806,16 +4954,19 @@ const V3 = (() => {
     }
     if (t0 > t1) return null;
     const above = t => a[1] + dir[1] * t - groundAt(T, a[0] + dir[0] * t, a[2] + dir[2] * t);
-    const step = Math.max(T.cell / 2, (t1 - t0) / 1400);
-    let prev = t0;
-    for (let t = t0; t <= t1 + step; t += step) {
+    const fineStep = Math.max(1.5, T.cell * 0.75), coarseStep = Math.max(8, (t1 - t0) / 3000);
+    let prev = t0, t = t0;
+    while (t < t1 + coarseStep) {
       const tc = Math.min(t, t1);
       if (above(tc) <= 0) {
         let l = prev, h = tc;
         for (let i = 0; i < 24; i++) { const m = (l + h) / 2; if (above(m) > 0) l = m; else h = m; }
         return { x: a[0] + dir[0] * h, z: a[2] + dir[2] * h };
       }
+      if (tc >= t1) break;
       prev = tc;
+      const rx = a[0] + dir[0] * tc, rz = a[2] + dir[2] * tc;
+      t = tc + (T.inside(rx, rz) ? fineStep : coarseStep);
     }
     return null;
   }
@@ -4824,9 +4975,10 @@ const V3 = (() => {
   const local = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
   const panOrbitBy = (dx, dy) => {
     const k = 2 * cam.dist * Math.tan(ORBIT_FOV * DEG / 2) / Math.max(1, cv.clientHeight), s = Math.sin(cam.yaw), c = Math.cos(cam.yaw), T = MAP.T, Ta = MAP.Tair;
+    const wide = isHeli() || !!Ta || !!(MAP.meta.helipads && MAP.meta.helipads.length);
     const bx0 = Ta ? Ta.ox : T.ox, bx1 = Ta ? Ta.x1 : T.x1, bz0 = Ta ? Ta.oz : T.oz, bz1 = Ta ? Ta.z1 : T.z1;
-    const minX = isHeli() ? Math.min(-25000, bx0) : bx0, maxX = isHeli() ? Math.max(25000, bx1) : bx1;
-    const minZ = isHeli() ? Math.min(-25000, bz0) : bz0, maxZ = isHeli() ? Math.max(25000, bz1) : bz1;
+    const minX = wide ? Math.min(-25000, bx0) : bx0, maxX = wide ? Math.max(25000, bx1) : bx1;
+    const minZ = wide ? Math.min(-25000, bz0) : bz0, maxZ = wide ? Math.max(25000, bz1) : bz1;
     cam.tx = Math.min(maxX, Math.max(minX, cam.tx - c * dx * k + s * dy * k));
     cam.tz = Math.min(maxZ, Math.max(minZ, cam.tz + s * dx * k + c * dy * k));
     cam.ty = groundAt(T, cam.tx, cam.tz);

@@ -673,6 +673,23 @@ mod tests {
                 let p1 = map.meta.helipads.iter().find(|p| p.id == "t1_near").unwrap();
                 let p4 = map.meta.helipads.iter().find(|p| p.id == "t2_far").unwrap();
                 assert!((p1.y - 71.04).abs() < 2.0 && (p4.y - 10.81).abs() < 2.0, "Aral Sea elevations: {}, {}", p1.y, p4.y);
+
+                // Ground tank inside tank battlefield targeting outer helipad B (A -> B aim + hull_pose + SweepKind::Hit + outer SweepKind::Reach)
+                let ground_tank = idx.tanks.iter().find(|t| !t.is_heli() && t.guns.iter().any(|g| g.pitch[1] >= 18.0 && g.shells.iter().any(|s| s.v0 >= 750.0))).unwrap();
+                let (gun, sh_gnd) = ground_tank.guns.iter().find_map(|g| g.shells.iter().find(|s| s.v0 >= 750.0).map(|s| (g, s))).unwrap();
+                let a_gnd = crate::core::Pt { x: 0.5 * (map.t.ox + map.t.x1), z: 0.5 * (map.t.oz + map.t.z1) };
+                let b_pad = crate::core::Pt { x: p1.x, z: p1.z };
+                assert!(map.t.inside(a_gnd.x, a_gnd.z) && !map.t.inside(b_pad.x, b_pad.z));
+                assert_eq!(crate::scene::pad_at(&map, b_pad).map(|p| p.id.as_str()), Some("t1_near"));
+                let (_, _, _, base_b) = crate::scene::hull_pose(&map, b_pad, (0.0, 1.0));
+                assert!((base_b - p1.y).abs() < 0.05, "3D target tank base {base_b} vs pad.y {}", p1.y);
+                let p_gnd = crate::scene::Params { p_min: gun.pitch[0], p_max: gun.pitch[1].max(25.0), range: 10000.0, gun_h: 2.2, tgt_h: 2.0, v_air: 0.0 };
+                let aim_gnd = crate::scene::compute_aim(&map, &map.tr, &map.tr, sh_gnd, a_gnd, b_pad, &p_gnd);
+                assert!(!aim_gnd.sols.is_empty(), "ground vehicle should solve ballistic arc to outer helipad");
+                let ov_hit = crate::scene::run_sweep(crate::scene::SweepKind::Hit, &map, &map.tr, sh_gnd, b_pad, &p_gnd, crate::scene::Perf::Fast, None);
+                assert!(ov_hit.km2 > 0.05, "SweepKind::Hit with B on outer helipad found {} km²", ov_hit.km2);
+                let ov_reach = crate::scene::run_sweep(crate::scene::SweepKind::Reach, &map, &map.tr, sh_gnd, a_gnd, &p_gnd, crate::scene::Perf::Fast, None);
+                assert!(ov_reach.km2 > 1.0, "SweepKind::Reach unclipped found {} km²", ov_reach.km2);
             }
         }
         assert_eq!(total_pads, 224);

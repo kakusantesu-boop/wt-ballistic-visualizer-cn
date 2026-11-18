@@ -989,10 +989,11 @@ pub struct SweepP {
 /// Reach from A: out[a*n+i] = 1 when some elevation puts the shell into [ground, ground+tgtH] at i*ds on ray a.
 #[cfg_attr(not(test), allow(dead_code))]
 pub fn sweep_reach(t: &Terrain, tab: &Table, a_pt: Pt, p: &SweepP, a0: usize, a1: usize) -> Vec<u8> {
-    sweep_reach_ext(t, None, tab, a_pt, p, a0, a1)
+    sweep_reach_ext(t, None, false, tab, a_pt, p, a0, a1)
 }
 
-pub fn sweep_reach_ext(t: &Terrain, outer: Option<&Terrain>, tab: &Table, a_pt: Pt, p: &SweepP, a0: usize, a1: usize) -> Vec<u8> {
+#[allow(clippy::too_many_arguments)]
+pub fn sweep_reach_ext(t: &Terrain, outer: Option<&Terrain>, allow_outer: bool, tab: &Table, a_pt: Pt, p: &SweepP, a0: usize, a1: usize) -> Vec<u8> {
     let n = tab.n;
     let y_a = p.y_pt + p.gun_h;
     let mut out = vec![0u8; (a1 - a0) * n];
@@ -1004,12 +1005,24 @@ pub fn sweep_reach_ext(t: &Terrain, outer: Option<&Terrain>, tab: &Table, a_pt: 
         for i in 0..n {
             let (x, z) = (a_pt.x + dx * i as f64 * tab.ds, a_pt.z + dz * i as f64 * tab.ds);
             if !t.inside(x, z) {
-                if entered {
+                if !allow_outer && entered {
                     break;
                 }
+                if allow_outer && outer.is_none_or(|ta| !ta.inside(x, z)) {
+                    if entered {
+                        break;
+                    }
+                }
                 let og = outer.filter(|ta| ta.inside(x, z)).map_or_else(|| t.height_at(x, z), |ta| ta.height_at(x, z));
-                prof[i] = (og - y_a) as f32;
-                in_box[i] = false;
+                let g_rel = (og - y_a) as f32;
+                prof[i] = g_rel;
+                if allow_outer && outer.is_some_and(|ta| ta.inside(x, z)) {
+                    entered = true;
+                    in_box[i] = true;
+                    top = top.max(g_rel);
+                } else {
+                    in_box[i] = false;
+                }
                 n_max = i + 1;
                 continue;
             }
@@ -1086,25 +1099,45 @@ fn solutions_at(tab: &Table, j: usize, dy: f32, res: &mut Vec<f32>) {
 }
 
 /// Hit target B: bit 1 = lowest-arc solution from a shooter at j*ds on ray a clears terrain, bit 2 = a higher arc.
+#[cfg_attr(not(test), allow(dead_code))]
 pub fn sweep_hit(t: &Terrain, tab: &Table, b_pt: Pt, p: &SweepP, a0: usize, a1: usize) -> Vec<u8> {
+    sweep_hit_ext(t, None, tab, b_pt, p, a0, a1)
+}
+
+pub fn sweep_hit_ext(t: &Terrain, outer: Option<&Terrain>, tab: &Table, b_pt: Pt, p: &SweepP, a0: usize, a1: usize) -> Vec<u8> {
     let n = tab.n;
     let y_b = p.y_pt + p.tgt_h;
     let mut out = vec![0u8; (a1 - a0) * n];
     let mut g = vec![0f64; n];
+    let mut in_box = vec![false; n];
     let mut sols = vec![];
     for a in a0..a1 {
         let (dx, dz) = ray_dir(a, p.n_az);
-        let mut n_max = n;
-        for (i, gi) in g.iter_mut().enumerate() {
+        let (mut n_max, mut entered) = (0usize, false);
+        for i in 0..n {
             let (x, z) = (b_pt.x + dx * i as f64 * tab.ds, b_pt.z + dz * i as f64 * tab.ds);
             if !t.inside(x, z) {
-                n_max = i;
-                break;
+                if entered {
+                    break;
+                }
+                g[i] = outer.filter(|ta| ta.inside(x, z)).map_or_else(|| t.height_at(x, z), |ta| ta.height_at(x, z));
+                in_box[i] = false;
+                n_max = i + 1;
+                continue;
             }
-            *gi = t.height_at(x, z);
+            entered = true;
+            in_box[i] = true;
+            n_max = i + 1;
+            g[i] = t.height_at(x, z);
+        }
+        if !entered {
+            continue;
         }
         let row0 = (a - a0) * n;
         for j in 1..n_max {
+            if !in_box[j] {
+                continue;
+            }
             let y_p = g[j] + p.gun_h;
             solutions_at(tab, j, (y_b - y_p) as f32, &mut sols);
             for (si, &kf) in sols.iter().enumerate() {
@@ -1127,10 +1160,10 @@ pub fn sweep_hit(t: &Terrain, tab: &Table, b_pt: Pt, p: &SweepP, a0: usize, a1: 
 /// Visibility from P: 0 hidden, 1 visible, 2 + src = the horizon point that cuts the view behind it.
 #[cfg_attr(not(test), allow(dead_code))]
 pub fn sweep_view(t: &Terrain, pt: Pt, p: &SweepP, a0: usize, a1: usize) -> Vec<u8> {
-    sweep_view_ext(t, None, pt, p, a0, a1)
+    sweep_view_ext(t, None, false, pt, p, a0, a1)
 }
 
-pub fn sweep_view_ext(t: &Terrain, outer: Option<&Terrain>, pt: Pt, p: &SweepP, a0: usize, a1: usize) -> Vec<u8> {
+pub fn sweep_view_ext(t: &Terrain, outer: Option<&Terrain>, allow_outer: bool, pt: Pt, p: &SweepP, a0: usize, a1: usize) -> Vec<u8> {
     let n = (p.range / p.ds).ceil() as usize + 1;
     let y_e = p.y_pt + p.gun_h;
     let mut out = vec![0u8; (a1 - a0) * n];
@@ -1142,11 +1175,38 @@ pub fn sweep_view_ext(t: &Terrain, outer: Option<&Terrain>, pt: Pt, p: &SweepP, 
             let d = i as f64 * p.ds;
             let (x, z) = (pt.x + dx * d, pt.z + dz * d);
             if !t.inside(x, z) {
-                if entered {
+                if !allow_outer && entered {
                     break;
                 }
-                let og = outer.filter(|ta| ta.inside(x, z)).map_or_else(|| t.height_at(x, z), |ta| ta.height_at(x, z));
-                max_s = max_s.max((og - y_e) / d);
+                let Some(ta) = outer.filter(|ta| ta.inside(x, z)) else {
+                    if entered {
+                        break;
+                    }
+                    let og = t.height_at(x, z);
+                    max_s = max_s.max((og - y_e) / d);
+                    continue;
+                };
+                let og = ta.height_at(x, z);
+                if allow_outer {
+                    entered = true;
+                    let top = og + p.tgt_h;
+                    let vis = (top - y_e) / d >= max_s;
+                    if vis {
+                        out[row0 + i] = 1;
+                    } else if prev_vis && hor > 0 {
+                        let hx = pt.x + dx * hor as f64 * p.ds;
+                        let hz = pt.z + dz * hor as f64 * p.ds;
+                        out[row0 + hor] = 2 + if t.inside(hx, hz) { t.src_at(hx, hz) } else { 0 };
+                    }
+                    prev_vis = vis;
+                    let sl = (og - y_e) / d;
+                    if sl > max_s {
+                        max_s = sl;
+                        hor = i;
+                    }
+                } else {
+                    max_s = max_s.max((og - y_e) / d);
+                }
                 continue;
             }
             entered = true;

@@ -570,6 +570,84 @@ impl Viewer {
         self.update_aim(cx);
     }
 
+    fn ensure_range_covers(&mut self, b: Pt, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(map) = self.map.as_ref() else { return };
+        let origin = self.a.unwrap_or(Pt { x: (map.t.ox + map.t.x1) * 0.5, z: (map.t.oz + map.t.z1) * 0.5 });
+        let dist = (b.x - origin.x).hypot(b.z - origin.z);
+        let needed = ((dist + 800.0) / 500.0).ceil() * 500.0;
+        let cur = self.params(cx).range;
+        if cur < needed {
+            let next = needed.clamp(2500.0, 20000.0);
+            self.range.update(cx, |s, cx| s.set_value(format!("{:.0}", next), window, cx));
+        }
+    }
+
+    fn frame_ground_and_point(&mut self, pt: Pt) {
+        let Some(map) = self.map.clone() else { return };
+        let t = &map.t;
+        let (mut x0, mut z0, mut x1, mut z1) = (t.ox, t.oz, t.x1, t.z1);
+        if let Some(b) = self.areas().iter().find(|a| a.kind == "battle") {
+            [x0, z0, x1, z1] = scene::area_shape(b).bbox();
+        }
+        if let Some(a) = self.a {
+            x0 = x0.min(a.x);
+            x1 = x1.max(a.x);
+            z0 = z0.min(a.z);
+            z1 = z1.max(a.z);
+        }
+        x0 = x0.min(pt.x);
+        x1 = x1.max(pt.x);
+        z0 = z0.min(pt.z);
+        z1 = z1.max(pt.z);
+        let pad = 450.0f64.max(0.10 * (x1 - x0).max(z1 - z0));
+        x0 -= pad;
+        x1 += pad;
+        z0 -= pad;
+        z1 += pad;
+        self.view.cx = (x0 + x1) * 0.5;
+        self.view.cz = (z0 + z1) * 0.5;
+        let (w, h) = (f64::from(f32::from(self.map_bounds.size.width)).max(400.0), f64::from(f32::from(self.map_bounds.size.height)).max(300.0));
+        self.view.s = (0.90 * (w / (x1 - x0)).min(h / (z1 - z0))).clamp(0.004, 40.0);
+        self.v3.fit(&map, self.view.cx, self.view.cz, (x1 - x0).max(z1 - z0));
+    }
+
+    fn target_helipad(&mut self, pad_id: &str, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(map) = self.map.clone() else { return };
+        let Some(pd) = map.meta.helipads.iter().find(|h| h.id == pad_id).cloned() else { return };
+        let target = Pt { x: pd.x, z: pd.z };
+        self.b = Some(target);
+        self.ensure_range_covers(target, window, cx);
+        self.frame_ground_and_point(target);
+        self.set_status(format!("已设目标 B：{}（停机坪台面 {:.1} m）", pd.name, pd.y), false);
+        self.update_aim(cx);
+    }
+
+    fn snap_2d_pad(&self, p: Pt, pos: Point<Pixels>) -> Pt {
+        if self.view_mode != ViewMode::Map2D {
+            return p;
+        }
+        let Some(map) = self.map.as_ref() else { return p };
+        let (lx, ly) = self.local(pos);
+        for pd in &map.meta.helipads {
+            if self.view.s >= 0.22 {
+                if let Some(pf) = self.helipad_lib.as_ref().and_then(|lib| lib.prefabs.get(&pd.uc)) {
+                    let (ux, uz) = pd.basis();
+                    for &[sx_l, sz_l] in &pf.spawns {
+                        let (sx_l, sz_l) = (sx_l as f64, sz_l as f64);
+                        let (wx_s, wz_s) = (pd.x + sx_l * ux - sz_l * uz, pd.z + sx_l * uz + sz_l * ux);
+                        if (self.sx(wx_s) - lx).hypot(self.sy(wz_s) - ly) <= 12.0 {
+                            return Pt { x: wx_s, z: wz_s };
+                        }
+                    }
+                }
+            }
+            if (self.sx(pd.x) - lx).hypot(self.sy(pd.z) - ly) <= 16.0 {
+                return Pt { x: pd.x, z: pd.z };
+            }
+        }
+        p
+    }
+
     fn fit_airspace(&mut self) {
         let Some(map) = self.map.clone() else { return };
         let t = &map.t;
@@ -650,11 +728,18 @@ impl Viewer {
             }
         } else if was_heli && !now_heli {
             self.range.update(cx, |s, cx| s.set_value("2500".to_string(), window, cx));
-            if let (Some(map), Some(a)) = (self.map.clone(), self.a) {
-                if !map.t.inside(a.x, a.z) {
-                    self.a = None;
+            if let Some(map) = self.map.clone() {
+                if let Some(a) = self.a {
+                    if !map.t.inside(a.x, a.z) {
+                        self.a = None;
+                    }
                 }
-                self.center_map();
+                if let Some(b) = self.b.filter(|b| !map.t.inside(b.x, b.z)) {
+                    self.ensure_range_covers(b, window, cx);
+                    self.frame_ground_and_point(b);
+                } else {
+                    self.center_map();
+                }
             }
         }
         self.pick_shell(k, window, cx);
@@ -907,7 +992,7 @@ impl Viewer {
         cx.notify();
     }
 
-    fn mouse_up(&mut self, ev: &MouseUpEvent, _: &mut Window, cx: &mut Context<Self>) {
+    fn mouse_up(&mut self, ev: &MouseUpEvent, window: &mut Window, cx: &mut Context<Self>) {
         let Some(d) = self.drag.take() else { return };
         if d.moved {
             if self.view_mode != ViewMode::Map2D {
@@ -918,17 +1003,27 @@ impl Viewer {
         if !self.map_bounds.contains(&ev.position) {
             return;
         }
-        let Some(p) = self.world_at(ev.position) else { return };
+        let Some(raw_p) = self.world_at(ev.position) else { return };
         let heli = self.is_heli();
-        if !self.map.as_ref().is_some_and(|m| if heli { p.x.abs() <= 25000.0 && p.z.abs() <= 25000.0 } else { m.t.inside(p.x, p.z) }) {
-            return;
-        }
         match d.btn {
             MouseButton::Left => {
+                let p = if heli { self.snap_2d_pad(raw_p, ev.position) } else { raw_p };
+                if !self.map.as_ref().is_some_and(|m| if heli { p.x.abs() <= 30000.0 && p.z.abs() <= 30000.0 } else { m.t.inside(p.x, p.z) }) {
+                    return;
+                }
                 self.a = Some(p);
                 self.heading = None; // a newly placed tank faces B
             }
-            MouseButton::Right => self.b = Some(p),
+            MouseButton::Right => {
+                let p = self.snap_2d_pad(raw_p, ev.position);
+                if !(p.x.abs() <= 30000.0 && p.z.abs() <= 30000.0) {
+                    return;
+                }
+                self.b = Some(p);
+                if !heli && self.map.as_ref().is_some_and(|m| !m.t.inside(p.x, p.z)) {
+                    self.ensure_range_covers(p, window, cx);
+                }
+            }
             _ => return,
         }
         self.update_aim(cx);
@@ -1144,8 +1239,29 @@ impl Viewer {
             }
         } else {
             match &self.aim {
-                Some(a) => scene::aim_lines(a, &p_cur),
-                None => vec![(if self.map.is_some() { "左键点击放置开火点 A，右键点击放置目标点 B。" } else { "请先加载一张地图。" }.to_string(), 0)],
+                Some(a) => {
+                    let mut lines = scene::aim_lines(a, &p_cur);
+                    if let (Some(m), Some(b)) = (self.map.as_ref(), self.b) {
+                        if let Some(pd) = scene::pad_at(m, b) {
+                            lines.insert(0, (format!("目标点位  {}（停机坪台面 {:.1} m）", pd.name, pd.y), 1));
+                        }
+                    }
+                    lines
+                }
+                None => {
+                    if let (Some(m), Some(b)) = (self.map.as_ref(), self.b) {
+                        if let Some(pd) = scene::pad_at(m, b) {
+                            vec![
+                                (format!("已设目标 B：{}（台面 {:.1} m）", pd.name, pd.y), 1),
+                                ("请左键点击陆战地图放置开火点 A，即可解算反制诸元。".into(), 0),
+                            ]
+                        } else {
+                            vec![("已放置目标点 B，请左键点击陆战地图放置开火点 A。".into(), 0)]
+                        }
+                    } else {
+                        vec![(if self.map.is_some() { "左键放置开火点 A，右键放置目标点 B（支持直升机停机坪）。" } else { "请先加载一张地图。" }.to_string(), 0)]
+                    }
+                }
             }
         };
         let n_all = self.index.tanks.len();
@@ -1160,10 +1276,15 @@ impl Viewer {
             }
             _ => "未放置机位".into(),
         };
+        let b_pad_id = match (self.map.as_ref(), self.b) {
+            (Some(m), Some(b)) => scene::pad_at(m, b).map(|pd| pd.id.clone()),
+            _ => None,
+        };
+        let has_pads = self.map.as_ref().is_some_and(|m| !m.meta.helipads.is_empty());
         let cap_btns = if heli { scene::capture_zones_labeled(&self.areas()) } else { vec![] };
         let help = [
             ("鼠标左键", "放置己方开火点 / 直升机悬停点 A（直升机支持外圈空域）"),
-            ("鼠标右键", "放置目标点 B"),
+            ("鼠标右键", "放置目标点 B（陆战与武直均支持设在直升机停机坪及外圈地形）"),
             ("鼠标滚轮", "缩放地图（支持外扩至 20 km 空域；瞄准镜下变倍）"),
             ("2D 拖动", "平移地图"),
             ("3D 拖动", "左键旋转视角；右键或 Shift+拖动平移；双击居中"),
@@ -1180,7 +1301,7 @@ impl Viewer {
                 .child(field("任务布局（不同任务与模式的战区和红区不同）", Select::new(&self.mission_sel).search_placeholder("搜索任务模式…")))
                 .child(div().flex().items_center().gap_2()
                     .child(Button::new("high").label("寻找最高点").small().on_click(cx.listener(|this, _, _, cx| this.find_high(cx))))
-                    .when(heli, |d| d.child(Button::new("fit-air").label("全空域总览").small().on_click(cx.listener(|this, _, _, cx| { this.fit_airspace(); this.v3.dirty(); cx.notify(); }))))
+                    .when(has_pads, |d| d.child(Button::new("fit-air").label("全空域总览").small().on_click(cx.listener(|this, _, _, cx| { this.fit_airspace(); this.v3.dirty(); cx.notify(); }))))
                     .child(div().text_xs().text_color(rgb(MUTED)).child(high_txt))))
             .child(card("载具火炮 / 直升机与弹药")
                 .child(div().flex().gap_1p5()
@@ -1189,6 +1310,21 @@ impl Viewer {
                     .child(Button::new("flt-hel").xsmall().when(flt == "heli", |b| b.primary()).label(format!("直升机 ({n_heli})")).flex_1().on_click(cx.listener(|this, _, window, cx| this.set_veh_filter("heli", window, cx)))))
                 .child(field("载具 / 直升机型号", Select::new(&self.tank_sel).search_placeholder("搜索坦克、火箭车或武直（如 卡-52 / AH-64 / 直-10）…")))
                 .child(field("选用弹药 / 火箭弹", Select::new(&self.shell_sel).search_placeholder("搜索弹种或火箭弹（如 S-8KO / 九头蛇 / S-13）…")))
+                .when(!heli && has_pads, |d| {
+                    let b_t1n = b_pad_id.as_deref() == Some("t1_near");
+                    let b_t1f = b_pad_id.as_deref() == Some("t1_far");
+                    let b_t2n = b_pad_id.as_deref() == Some("t2_near");
+                    let b_t2f = b_pad_id.as_deref() == Some("t2_far");
+                    d.child(div().flex().flex_col().gap_1p5().p_2().rounded_md().bg(rgb(0x131920)).border_1().border_color(rgb(0x2a3b4c))
+                        .child(div().flex().justify_between().items_center().text_xs()
+                            .child(div().font_weight(FontWeight::BOLD).text_color(rgb(0x52b6ec)).child("反制敌方停机坪（一键设目标 B）"))
+                            .child(div().text_color(rgb(MUTED)).child("亦可右键点停机坪")))
+                        .child(div().flex().gap_1()
+                            .child(Button::new("gnd-b-t1n").xsmall().when(b_t1n, |b| b.primary()).label("1队近H1").flex_1().on_click(cx.listener(|this, _, window, cx| this.target_helipad("t1_near", window, cx))))
+                            .child(Button::new("gnd-b-t1f").xsmall().when(b_t1f, |b| b.primary()).label("1队远H2").flex_1().on_click(cx.listener(|this, _, window, cx| this.target_helipad("t1_far", window, cx))))
+                            .child(Button::new("gnd-b-t2n").xsmall().when(b_t2n, |b| b.primary()).label("2队近H1").flex_1().on_click(cx.listener(|this, _, window, cx| this.target_helipad("t2_near", window, cx))))
+                            .child(Button::new("gnd-b-t2f").xsmall().when(b_t2f, |b| b.primary()).label("2队远H2").flex_1().on_click(cx.listener(|this, _, window, cx| this.target_helipad("t2_far", window, cx))))))
+                })
                 .when(heli, |d| {
                     d.child(div().flex().flex_col().gap_1p5().p_2().rounded_md().bg(rgb(0x131920)).border_1().border_color(rgb(0x2a3b4c))
                         .child(div().flex().justify_between().items_center().text_xs()
